@@ -1,0 +1,6 @@
+Small usability fixes:
+
+* QR and LAN buttons now match the ZIP backup button layout.
+* Expiry dates auto-format as you type: DD-MM-YYYY.
+* Endpoint name is optional; leave it blank to use the provider name with 1, 2, 3 suffixes for duplicates.
+* Times now display in 12-hour AM/PM format.

@@ -29,8 +29,8 @@
     <string name="filtered_empty_body">Try clearing your search or switching the provider filter.</string>
     <string name="dialog_add_title">Add API Endpoint</string>
     <string name="dialog_edit_title">Edit API Endpoint</string>
-    <string name="field_name_label">Endpoint Name</string>
-    <string name="field_name_placeholder">Optional - defaults to provider name</string>
+    <string name="field_name_label">Endpoint Name (optional)</string>
+    <string name="field_name_placeholder">Leave blank to use provider name</string>
     <string name="field_provider_label">Provider Type</string>
     <string name="field_base_url_label">Base URL</string>
     <string name="field_base_url_placeholder">https://api.example.com/v1</string>

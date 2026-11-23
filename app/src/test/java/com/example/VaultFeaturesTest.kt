@@ -233,6 +233,13 @@ class VaultFeaturesTest {
         assertTrue(brave.endsWith("&summary=1"))
     }
 
+    fun `expiry input auto formats DD-MM-YYYY`() {
+        assertEquals("01", DateFormats.autoFormatExpiryInput("1"))
+        assertEquals("01-01", DateFormats.autoFormatExpiryInput("11"))
+        assertEquals("01-01-2001", DateFormats.autoFormatExpiryInput("1012001"))
+        assertEquals("01-01-2001", DateFormats.autoFormatExpiryInput("01-01-2001"))
+    }
+
     @Test
     fun `expiry date uses DD-MM-YYYY`() {
         val millis = DateFormats.parseExpiryDate("31-12-2026")

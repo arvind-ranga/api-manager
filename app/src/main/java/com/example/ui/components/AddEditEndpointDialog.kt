@@ -245,7 +245,7 @@ fun AddEditEndpointDialog(
                 OutlinedTextField(
                     value = expiryText,
                     onValueChange = {
-                        expiryText = it
+                        expiryText = DateFormats.autoFormatExpiryInput(it)
                         expiryError = null
                     },
                     label = { Text(stringResource(R.string.field_expiry_label)) },
@@ -256,7 +256,7 @@ fun AddEditEndpointDialog(
                         Text(expiryError?.let { stringResource(it) } ?: stringResource(R.string.field_expiry_hint))
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
+                        keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Next
                     ),
                     modifier = Modifier
@@ -335,10 +335,6 @@ fun AddEditEndpointDialog(
                             val trimmedKey = apiKey.trim()
 
                             var hasError = false
-                            if (trimmedName.isEmpty()) {
-                                nameError = R.string.error_name_required
-                                hasError = true
-                            }
                             if (!isValidHttpUrl(trimmedUrl)) {
                                 urlError = R.string.error_url_invalid
                                 hasError = true

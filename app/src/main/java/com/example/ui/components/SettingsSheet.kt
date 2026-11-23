@@ -286,7 +286,7 @@ fun SettingsSheet(
                     .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TransferActionButton(
+                OutlinedTransferButton(
                     text = stringResource(R.string.action_qr_send),
                     icon = Icons.Outlined.QrCode,
                     onClick = onQrSend,
@@ -295,7 +295,7 @@ fun SettingsSheet(
                         .fillMaxHeight()
                         .testTag("qr_send_button")
                 )
-                TransferActionButton(
+                OutlinedTransferButton(
                     text = stringResource(R.string.action_qr_receive),
                     icon = Icons.Outlined.QrCodeScanner,
                     onClick = onQrReceive,
@@ -312,7 +312,7 @@ fun SettingsSheet(
                     .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TransferActionButton(
+                OutlinedTransferButton(
                     text = stringResource(R.string.action_lan_send),
                     icon = Icons.Outlined.QrCode,
                     onClick = onLanSend,
@@ -321,7 +321,7 @@ fun SettingsSheet(
                         .fillMaxHeight()
                         .testTag("lan_send_button")
                 )
-                TransferActionButton(
+                OutlinedTransferButton(
                     text = stringResource(R.string.action_lan_receive),
                     icon = Icons.Outlined.QrCodeScanner,
                     onClick = onLanReceive,
@@ -461,25 +461,27 @@ fun SettingsSheet(
 }
 
 @Composable
-private fun TransferActionButton(
+private fun OutlinedTransferButton(
     text: String,
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ElevatedButton(
+    OutlinedButton(
         onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
         modifier = modifier.minimumInteractiveComponentSize()
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
                 maxLines = 2
             )
