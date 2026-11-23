@@ -1,0 +1,7 @@
+Version 2.0
+
+- Removed all Google Play services, Firebase, and cloud sync.
+- Added local encrypted ZIP backups, QR sync, and QR + LAN peer-to-peer transfer.
+- Added Light/Dark/Auto theme settings and an About screen.
+- Added expiry dates, duplicate detection, and auto-numbered duplicate names.
+- Added DuckDuckGo search and direct official provider links.

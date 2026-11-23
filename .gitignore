@@ -1,0 +1,22 @@
+# Gradle / Android build outputs
+.gradle/
+build/
+app/build/
+local.properties
+.cxx/
+
+# IDE / Kotlin compiler state
+.idea/
+.kotlin/
+*.iml
+.DS_Store
+
+# Signing material (never commit release keys)
+*.jks
+*.keystore
+!debug.keystore
+
+# Secrets / local config
+.env
+*.gpg
+google-services.json

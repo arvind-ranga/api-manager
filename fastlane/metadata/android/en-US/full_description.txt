@@ -1,0 +1,16 @@
+API Manager is a lightweight, offline-first Android vault for the API endpoints and secret keys you use for your own projects.
+
+There are no accounts, no ads, no analytics, no Google Play services and no Firebase. Keys are encrypted on-device with AES-256-GCM using a key held in the Android Keystore. An optional PIN, fingerprint, or both can lock the app.
+
+Features:
+- Store endpoints with an optional expiry date; expired keys are highlighted.
+- Extra keys for the same site are detected as duplicates and auto-named 1, 2, 3, and so on.
+- Export and import user-controlled encrypted ZIP backups through the Android file picker.
+- Transfer a vault directly between devices with QR codes (fully offline) or over your local Wi-Fi/LAN with a one-time random token and transfer code. Keys are encrypted with the code before leaving the old device, then re-encrypted on the new device.
+- Light, Dark, and Auto themes.
+- DuckDuckGo search opens in your own browser instead of shipping a large inbuilt API catalogue.
+- Direct links to official key pages for OpenAI, Anthropic, Gemini, and OpenRouter.
+
+Privacy: the app collects nothing. Internet access is used only for optional local-network transfer and browser links. LAN transfer uses plain HTTP on your local network with a one-time random token; the client rejects public IP addresses. Backups contain encrypted keys only and never include your PIN hash, salt, or keystore key.
+
+Source and support: https://github.com/arvind-ranga/api-manager

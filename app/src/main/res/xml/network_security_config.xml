@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      Android blocks cleartext HTTP by default. This app never talks to a public
+      server: the only HTTP traffic is an optional one-time transfer between two
+      devices on the same Wi-Fi/LAN. LocalSyncClient additionally rejects any URL
+      whose host is not a private/loopback IP and whose path/token do not match,
+      so this exception cannot be abused for general web traffic.
+    -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
