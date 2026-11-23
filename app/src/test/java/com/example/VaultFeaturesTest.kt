@@ -97,10 +97,11 @@ class VaultFeaturesTest {
             .getOrThrow()
         val original = repository.getEntitiesForBackup()
         val envelope = manager.buildEnvelope(original)
-
-        val zipBytes = manager.toZipBytes(envelope)
-        val restored = manager.fromZipBytes(zipBytes).getOrThrow()
+        val password = "correct horse battery staple"
+        val zipBytes = manager.toPasswordZipBytes(envelope, password).getOrThrow()
+        val restored = manager.fromPasswordZipBytes(zipBytes, password).getOrThrow()
         val entities = manager.toEntities(restored)
+        assertTrue(manager.fromPasswordZipBytes(zipBytes, "wrong-password").isFailure)
 
         assertEquals(1, entities.size)
         assertEquals(original.first().encryptedApiKey, entities.first().encryptedApiKey)

@@ -20,10 +20,10 @@ No accounts, ads, analytics, Firebase, or Google Play services. Keys stay encryp
 
 ## Backup and transfer
 
-- **ZIP backup:** encrypted on-device; restore on the same install after reinstall.
+- **ZIP backup:** password-encrypted ZIP. Use the same password to restore on a new phone or after uninstalling.
 - **QR:** sender shows QR chunks; receiver scans them. The transfer key travels in the QR code, so no separate code is typed.
 - **LAN:** sender shows one QR code over Wi-Fi; receiver scans and connects. No separate code is typed.
-- Moving to a new phone: use QR or LAN while the old device is available. Keys are re-encrypted for the new device.
+- Moving to a new phone: use QR, LAN, or a password-protected ZIP backup while the old device is available.
 - App lock still uses your normal PIN or biometrics.
 
 ## Build (Windows)

@@ -39,6 +39,8 @@ enum class AppScreen {
     VAULT, SETTINGS, ABOUT, TRASH, QR_SEND, QR_RECEIVE, LAN_SEND, LAN_RECEIVE
 }
 
+enum class BackupDialogMode { EXPORT, IMPORT }
+
 data class ApiManagerUiState(
     val allEndpoints: List<ApiEndpointItem> = emptyList(),
     val trashEndpoints: List<ApiEndpointItem> = emptyList(),
@@ -52,6 +54,11 @@ data class ApiManagerUiState(
     val editingPlainKey: String = "",
     val isPinSetupDialogOpen: Boolean = false,
     val isConfirmEmptyTrashDialogOpen: Boolean = false,
+    val isBackupPasswordDialogOpen: Boolean = false,
+    val backupDialogMode: BackupDialogMode = BackupDialogMode.EXPORT,
+    val backupPasswordInput: String = "",
+    val backupPasswordError: Boolean = false,
+    val pendingBackupUri: String? = null,
     val deleteTarget: ApiEndpointItem? = null,
     @StringRes val snackbarMessageRes: Int? = null,
     val snackbarText: String? = null,
@@ -85,6 +92,11 @@ private data class InteractionState(
     val editingPlainKey: String = "",
     val isPinSetupDialogOpen: Boolean = false,
     val isConfirmEmptyTrashDialogOpen: Boolean = false,
+    val isBackupPasswordDialogOpen: Boolean = false,
+    val backupDialogMode: BackupDialogMode = BackupDialogMode.EXPORT,
+    val backupPasswordInput: String = "",
+    val backupPasswordError: Boolean = false,
+    val pendingBackupUri: String? = null,
     val deleteTarget: ApiEndpointItem? = null,
     @StringRes val snackbarMessageRes: Int? = null,
     val snackbarText: String? = null,
@@ -189,6 +201,11 @@ class ApiManagerViewModel(
             isPinSetupDialogOpen = ui.isPinSetupDialogOpen,
             deleteTarget = ui.deleteTarget,
             isConfirmEmptyTrashDialogOpen = ui.isConfirmEmptyTrashDialogOpen,
+            isBackupPasswordDialogOpen = ui.isBackupPasswordDialogOpen,
+            backupDialogMode = ui.backupDialogMode,
+            backupPasswordInput = ui.backupPasswordInput,
+            backupPasswordError = ui.backupPasswordError,
+            pendingBackupUri = ui.pendingBackupUri,
             snackbarMessageRes = ui.snackbarMessageRes,
             snackbarText = ui.snackbarText,
             isLoading = false,
@@ -601,46 +618,99 @@ class ApiManagerViewModel(
             interactionState.update { it.copy(snackbarText = "Backup is unavailable") }
             return
         }
-        viewModelScope.launch {
-            interactionState.update { it.copy(isSyncBusy = true) }
-            runCatching {
-                val entities = repository.getEntitiesForBackup()
-                manager.exportTo(uri, manager.buildEnvelope(entities)).getOrThrow()
-            }.onSuccess {
-                interactionState.update {
-                    it.copy(isSyncBusy = false, snackbarMessageRes = R.string.snackbar_backup_exported)
-                }
-            }.onFailure { error ->
-                interactionState.update {
-                    it.copy(isSyncBusy = false, snackbarText = error.message ?: "Export failed")
-                }
-            }
+        interactionState.update {
+            it.copy(
+                isBackupPasswordDialogOpen = true,
+                backupDialogMode = BackupDialogMode.EXPORT,
+                backupPasswordInput = "",
+                backupPasswordError = false,
+                pendingBackupUri = uri.toString()
+            )
         }
     }
 
     fun onImportBackup(uri: Uri) {
+        interactionState.update {
+            it.copy(
+                isBackupPasswordDialogOpen = true,
+                backupDialogMode = BackupDialogMode.IMPORT,
+                backupPasswordInput = "",
+                backupPasswordError = false,
+                pendingBackupUri = uri.toString()
+            )
+        }
+    }
+
+    fun onBackupPasswordChanged(value: String) {
+        interactionState.update {
+            it.copy(backupPasswordInput = value, backupPasswordError = false)
+        }
+    }
+
+    fun onDismissBackupPasswordDialog() {
+        interactionState.update {
+            it.copy(
+                isBackupPasswordDialogOpen = false,
+                backupPasswordInput = "",
+                backupPasswordError = false,
+                pendingBackupUri = null
+            )
+        }
+    }
+
+    fun onConfirmBackupPassword() {
         val manager = backupManager
-        if (manager == null) {
-            interactionState.update { it.copy(snackbarText = "Backup is unavailable") }
+        val uriString = interactionState.value.pendingBackupUri
+        val mode = interactionState.value.backupDialogMode
+        val password = interactionState.value.backupPasswordInput
+        if (manager == null || uriString == null) {
+            onDismissBackupPasswordDialog()
+            return
+        }
+        if (password.isBlank()) {
+            interactionState.update { it.copy(backupPasswordError = true) }
             return
         }
         viewModelScope.launch {
             interactionState.update { it.copy(isSyncBusy = true) }
-            runCatching {
-                val envelope = manager.importFrom(uri).getOrThrow()
-                repository.importEntities(manager.toEntities(envelope)).getOrThrow()
-            }.onSuccess { count ->
+            val uri = Uri.parse(uriString)
+            val result = if (mode == BackupDialogMode.EXPORT) {
+                runCatching {
+                    val entities = repository.getEntitiesForBackup()
+                    manager.exportTo(uri, manager.buildEnvelope(entities), password).getOrThrow()
+                }.map { 0 }
+            } else {
+                runCatching {
+                    val envelope = manager.importFrom(uri, password).getOrThrow()
+                    repository.importEntities(manager.toEntities(envelope)).getOrThrow()
+                }
+            }
+            result.onSuccess { count ->
                 interactionState.update {
                     it.copy(
                         isSyncBusy = false,
-                        snackbarMessageRes = R.string.snackbar_backup_imported,
-                        snackbarText = null,
-                        syncMessage = "Restored $count endpoint(s)"
+                        isBackupPasswordDialogOpen = false,
+                        backupPasswordInput = "",
+                        pendingBackupUri = null,
+                        snackbarMessageRes = if (mode == BackupDialogMode.EXPORT) {
+                            R.string.snackbar_backup_exported
+                        } else {
+                            R.string.snackbar_backup_imported
+                        },
+                        snackbarText = if (mode == BackupDialogMode.EXPORT) {
+                            null
+                        } else {
+                            "Restored $count endpoint(s)"
+                        }
                     )
                 }
             }.onFailure { error ->
                 interactionState.update {
-                    it.copy(isSyncBusy = false, snackbarText = error.message ?: "Import failed")
+                    it.copy(
+                        isSyncBusy = false,
+                        backupPasswordError = mode == BackupDialogMode.IMPORT,
+                        snackbarText = error.message ?: "Backup failed"
+                    )
                 }
             }
         }

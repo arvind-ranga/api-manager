@@ -203,6 +203,13 @@ fun ApiManagerScreen(
                 onLanReceive = viewModel::onStartLanReceive,
                 onOpenTrash = viewModel::onOpenTrash,
                 onOpenAbout = viewModel::onOpenAbout,
+                isBackupPasswordDialogOpen = uiState.isBackupPasswordDialogOpen,
+                backupDialogMode = uiState.backupDialogMode,
+                backupPasswordInput = uiState.backupPasswordInput,
+                backupPasswordError = uiState.backupPasswordError,
+                onBackupPasswordChanged = viewModel::onBackupPasswordChanged,
+                onDismissBackupPasswordDialog = viewModel::onDismissBackupPasswordDialog,
+                onConfirmBackupPassword = viewModel::onConfirmBackupPassword,
                 onDismiss = viewModel::onOpenVault
             )
         }

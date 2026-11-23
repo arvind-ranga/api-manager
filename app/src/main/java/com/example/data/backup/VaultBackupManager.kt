@@ -15,6 +15,9 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+private const val BACKUP_ENTRY = "vault.bin"
+private const val MAX_BACKUP_BYTES = 50L * 1024L * 1024L
+
 data class BackupEndpoint(
     val remoteId: String,
     val name: String,
@@ -247,6 +250,41 @@ class VaultBackupManager(
         return output.toByteArray()
     }
 
+    fun toPasswordZipBytes(envelope: BackupEnvelope, password: String): Result<ByteArray> = runCatching {
+        require(password.isNotBlank()) { "Backup password cannot be empty" }
+        val json = toJson(envelope).toByteArray(Charsets.UTF_8)
+        val encrypted = BackupCrypto.encryptWithPassword(json, password)
+        val output = ByteArrayOutputStream()
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry(BACKUP_ENTRY))
+            zip.write(encrypted)
+            zip.closeEntry()
+        }
+        output.toByteArray()
+    }
+
+    fun fromPasswordZipBytes(bytes: ByteArray, password: String): Result<BackupEnvelope> = runCatching {
+        val encrypted = readBackupEntry(bytes)
+        val json = BackupCrypto.decryptWithPassword(encrypted, password)
+        fromJson(json.toString(Charsets.UTF_8)).getOrThrow()
+    }
+
+    private fun readBackupEntry(bytes: ByteArray): ByteArray {
+        ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+            var entry: ZipEntry? = zip.nextEntry
+            while (entry != null) {
+                if (entry.name == BACKUP_ENTRY) {
+                    val value = zip.readBytes()
+                    require(value.size.toLong() <= MAX_BACKUP_BYTES) { "Backup is too large" }
+                    return value
+                }
+                zip.closeEntry()
+                entry = zip.nextEntry
+            }
+        }
+        throw IllegalArgumentException("Backup is missing $BACKUP_ENTRY")
+    }
+
     fun fromZipBytes(bytes: ByteArray): Result<BackupEnvelope> = runCatching {
         var endpointsJson: String? = null
         ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
@@ -265,9 +303,9 @@ class VaultBackupManager(
         fromJson(json).getOrThrow()
     }
 
-    suspend fun exportTo(uri: Uri, envelope: BackupEnvelope): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun exportTo(uri: Uri, envelope: BackupEnvelope, password: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val bytes = toZipBytes(envelope)
+            val bytes = toPasswordZipBytes(envelope, password).getOrThrow()
             val output = checkNotNull(context.contentResolver.openOutputStream(uri)) {
                 "Cannot write to the selected location"
             }
@@ -275,12 +313,12 @@ class VaultBackupManager(
         }
     }
 
-    suspend fun importFrom(uri: Uri): Result<BackupEnvelope> = withContext(Dispatchers.IO) {
+    suspend fun importFrom(uri: Uri, password: String): Result<BackupEnvelope> = withContext(Dispatchers.IO) {
         runCatching {
             val bytes = checkNotNull(context.contentResolver.openInputStream(uri)) {
                 "Cannot read the selected file"
             }.use { it.readBytes() }
-            fromZipBytes(bytes).getOrThrow()
+            fromPasswordZipBytes(bytes, password).getOrThrow()
         }
     }
 

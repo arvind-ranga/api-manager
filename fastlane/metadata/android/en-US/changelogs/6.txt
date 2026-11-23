@@ -1,0 +1,6 @@
+Backup portability update:
+
+* ZIP backups now use a password you choose instead of the Android Keystore.
+* Export asks for a backup password.
+* Import asks for that same password.
+* A password-protected ZIP can be restored on a new phone or after uninstalling.

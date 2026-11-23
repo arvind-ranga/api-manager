@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +68,7 @@ import com.example.data.security.VaultLockMode
 import com.example.data.security.VaultLockSettings
 import com.example.data.settings.SearchProvider
 import com.example.data.settings.ThemeMode
+import com.example.ui.BackupDialogMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,7 +90,14 @@ fun SettingsSheet(
     onLanReceive: () -> Unit,
     onOpenTrash: () -> Unit,
     onOpenAbout: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isBackupPasswordDialogOpen: Boolean = false,
+    backupDialogMode: BackupDialogMode = BackupDialogMode.EXPORT,
+    backupPasswordInput: String = "",
+    backupPasswordError: Boolean = false,
+    onBackupPasswordChanged: (String) -> Unit = {},
+    onDismissBackupPasswordDialog: () -> Unit = {},
+    onConfirmBackupPassword: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val biometricReady = biometricAvailability == BiometricAvailability.AVAILABLE
@@ -99,6 +109,74 @@ fun SettingsSheet(
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> if (uri != null) onImportBackup(uri) }
+
+    if (isBackupPasswordDialogOpen) {
+        AlertDialog(
+            onDismissRequest = onDismissBackupPasswordDialog,
+            title = {
+                Text(
+                    stringResource(
+                        if (backupDialogMode == BackupDialogMode.EXPORT) {
+                            R.string.backup_password_export_title
+                        } else {
+                            R.string.backup_password_import_title
+                        }
+                    )
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(
+                            if (backupDialogMode == BackupDialogMode.EXPORT) {
+                                R.string.backup_password_export_message
+                            } else {
+                                R.string.backup_password_import_message
+                            }
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = backupPasswordInput,
+                        onValueChange = onBackupPasswordChanged,
+                        label = { Text(stringResource(R.string.backup_password_label)) },
+                        singleLine = true,
+                        isError = backupPasswordError,
+                        supportingText = if (backupPasswordError) {
+                            {
+                                Text(stringResource(R.string.backup_password_error))
+                            }
+                        } else {
+                            null
+                        },
+                        modifier = Modifier.testTag("backup_password_input")
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onConfirmBackupPassword,
+                    enabled = backupPasswordInput.isNotBlank(),
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("confirm_backup_password_button")
+                ) {
+                    Text(stringResource(R.string.action_continue))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismissBackupPasswordDialog,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("cancel_backup_password_button")
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(

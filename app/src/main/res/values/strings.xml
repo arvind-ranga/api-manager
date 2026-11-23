@@ -44,6 +44,13 @@
     <string name="action_save">Save Endpoint</string>
     <string name="action_update">Update</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_continue">Continue</string>
+    <string name="backup_password_export_title">Password-protect backup</string>
+    <string name="backup_password_import_title">Enter backup password</string>
+    <string name="backup_password_export_message">This password encrypts the ZIP. You will need it to restore the backup, even on a new phone.</string>
+    <string name="backup_password_import_message">Enter the password used when this backup was created.</string>
+    <string name="backup_password_label">Backup password</string>
+    <string name="backup_password_error">Could not unlock this backup. Check the password.</string>
     <string name="action_delete">Move to Trash</string>
     <string name="action_delete_forever">Delete forever</string>
     <string name="delete_dialog_title">Move to Trash?</string>
