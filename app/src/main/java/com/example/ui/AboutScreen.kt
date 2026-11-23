@@ -71,10 +71,10 @@ fun AboutScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(stringResource(R.string.providers_title), style = MaterialTheme.typography.titleMedium)
             listOf(
-                LinkItem(stringResource(R.string.provider_openai), "https://platform.openai.com/api-keys"),
-                LinkItem(stringResource(R.string.provider_anthropic), "https://console.anthropic.com/settings/keys"),
-                LinkItem(stringResource(R.string.provider_gemini), "https://aistudio.google.com/app/apikey"),
-                LinkItem(stringResource(R.string.provider_openrouter), "https://openrouter.ai/keys")
+                LinkItem("🤖 " + stringResource(R.string.provider_openai), "https://platform.openai.com/api-keys"),
+                LinkItem("🧠 " + stringResource(R.string.provider_anthropic), "https://console.anthropic.com/settings/keys"),
+                LinkItem("✨ " + stringResource(R.string.provider_gemini), "https://aistudio.google.com/app/apikey"),
+                LinkItem("🔀 " + stringResource(R.string.provider_openrouter), "https://openrouter.ai/keys")
             ).forEach { link ->
                 TextButton(onClick = { context.openUrl(link.url) }) {
                     Text(link.label)
@@ -84,15 +84,15 @@ fun AboutScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(stringResource(R.string.about_links), style = MaterialTheme.typography.titleMedium)
             listOf(
-                LinkItem(stringResource(R.string.link_github), "https://github.com/arvind-ranga/api-manager"),
-                LinkItem(stringResource(R.string.link_ko_fi), "https://ko-fi.com/arvindranga"),
-                LinkItem(stringResource(R.string.link_sponsors), "https://github.com/sponsors/arvind-ranga"),
+                LinkItem("🐙 " + stringResource(R.string.link_github), "https://github.com/arvind-ranga/api-manager"),
+                LinkItem("☕ " + stringResource(R.string.link_ko_fi), "https://ko-fi.com/arvindranga"),
+                LinkItem("💖 " + stringResource(R.string.link_sponsors), "https://github.com/sponsors/arvind-ranga"),
                 LinkItem(
-                    stringResource(R.string.link_upi),
+                    "🇮🇳 " + stringResource(R.string.link_upi),
                     "upi://pay?pa=electriclegend@yescred&pn=Arvind%20Ranga&cu=INR"
                 ),
-                LinkItem(stringResource(R.string.link_izzyondroid), "https://apt.izzysoft.de/fdroid/index/apk/com.aistudio.apimanager.vkrxmw"),
-                LinkItem(stringResource(R.string.link_fdroid), "https://f-droid.org/")
+                LinkItem("🤖 " + stringResource(R.string.link_izzyondroid), "https://apt.izzysoft.de/fdroid/index/apk/com.aistudio.apimanager.vkrxmw"),
+                LinkItem("🛍️ " + stringResource(R.string.link_fdroid), "https://f-droid.org/")
             ).forEach { link ->
                 TextButton(onClick = { context.openUrl(link.url) }) {
                     Text(link.label)

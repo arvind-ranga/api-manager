@@ -15,7 +15,9 @@ private val Context.themeDataStore: DataStore<Preferences> by preferencesDataSto
 
 interface ThemePreferencesStore {
     val themeMode: Flow<ThemeMode>
+    val searchProvider: Flow<SearchProvider>
     suspend fun setThemeMode(mode: ThemeMode)
+    suspend fun setSearchProvider(provider: SearchProvider)
 }
 
 class DataStoreThemePreferencesStore(
@@ -23,10 +25,15 @@ class DataStoreThemePreferencesStore(
 ) : ThemePreferencesStore {
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val SEARCH_PROVIDER = stringPreferencesKey("search_provider")
     }
 
     override val themeMode: Flow<ThemeMode> = context.themeDataStore.data.map { prefs ->
         ThemeMode.fromStored(prefs[Keys.THEME_MODE])
+    }
+
+    override val searchProvider: Flow<SearchProvider> = context.themeDataStore.data.map { prefs ->
+        SearchProvider.fromStored(prefs[Keys.SEARCH_PROVIDER])
     }
 
     override suspend fun setThemeMode(mode: ThemeMode) {
@@ -34,12 +41,26 @@ class DataStoreThemePreferencesStore(
             prefs[Keys.THEME_MODE] = mode.name
         }
     }
+
+    override suspend fun setSearchProvider(provider: SearchProvider) {
+        context.themeDataStore.edit { prefs ->
+            prefs[Keys.SEARCH_PROVIDER] = provider.name
+        }
+    }
 }
 
 class InMemoryThemePreferencesStore : ThemePreferencesStore {
-    private val state = kotlinx.coroutines.flow.MutableStateFlow(ThemeMode.AUTO)
-    override val themeMode: Flow<ThemeMode> = state
+    private val themeState = kotlinx.coroutines.flow.MutableStateFlow(ThemeMode.AUTO)
+    private val searchState = kotlinx.coroutines.flow.MutableStateFlow(SearchProvider.GOOGLE_AI)
+
+    override val themeMode: Flow<ThemeMode> = themeState
+    override val searchProvider: Flow<SearchProvider> = searchState
+
     override suspend fun setThemeMode(mode: ThemeMode) {
-        state.value = mode
+        themeState.value = mode
+    }
+
+    override suspend fun setSearchProvider(provider: SearchProvider) {
+        searchState.value = provider
     }
 }

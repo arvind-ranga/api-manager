@@ -1,1 +1,1 @@
-Offline encrypted vault for API keys with local backups and QR sync
+Offline encrypted API key vault with Trash, local backups, and QR/LAN sync

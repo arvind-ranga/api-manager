@@ -55,11 +55,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.R
 import com.example.data.model.ProviderType
 import com.example.data.repository.ApiEndpointItem
+import com.example.ui.DateFormats
 import com.example.ui.theme.CodeTextStyle
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,7 +82,7 @@ fun AddEditEndpointDialog(
     var isApiKeyVisible by remember { mutableStateOf(false) }
 
     var expiryText by remember(editingEndpoint) {
-        mutableStateOf(editingEndpoint?.expiresAtMillis?.let { formatExpiryDate(it) } ?: "")
+        mutableStateOf(editingEndpoint?.expiresAtMillis?.let { DateFormats.formatExpiryDate(it) } ?: "")
     }
     var nameError by remember { mutableStateOf<Int?>(null) }
     var urlError by remember { mutableStateOf<Int?>(null) }
@@ -230,7 +227,7 @@ fun AddEditEndpointDialog(
                             .filter { it.isNotBlank() }
                             .joinToString(" ")
                         context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse("https://duckduckgo.com/?q=" + Uri.encode(query)))
+                            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?udm=50&q=" + Uri.encode(query)))
                         )
                     },
                     modifier = Modifier.testTag("search_api_docs_button")
@@ -254,7 +251,7 @@ fun AddEditEndpointDialog(
                         Text(expiryError?.let { stringResource(it) } ?: stringResource(R.string.field_expiry_hint))
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
+                        keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
                     ),
                     modifier = Modifier
@@ -348,7 +345,7 @@ fun AddEditEndpointDialog(
                             val expiresAt = if (expiryText.isBlank()) {
                                 null
                             } else {
-                                parseExpiryDate(expiryText.trim()).also {
+                                DateFormats.parseExpiryDate(expiryText.trim()).also {
                                     if (it == null) {
                                         expiryError = R.string.error_expiry_invalid
                                         hasError = true
@@ -381,23 +378,3 @@ internal fun isValidHttpUrl(url: String): Boolean {
     if (!lower.startsWith("https://") && !lower.startsWith("http://")) return false
     return Patterns.WEB_URL.matcher(url).matches()
 }
-
-private fun parseExpiryDate(value: String): Long? {
-    if (!Regex("\\d{4}-\\d{2}-\\d{2}").matches(value)) return null
-    return try {
-        val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        format.isLenient = false
-        val date: Date = format.parse(value) ?: return null
-        val calendar = Calendar.getInstance()
-        calendar.time = date
-        calendar.set(Calendar.HOUR_OF_DAY, 12)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.timeInMillis
-    } catch (_: Exception) {
-        null
-    }
-}
-
-private fun formatExpiryDate(millis: Long): String =
-    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(millis))

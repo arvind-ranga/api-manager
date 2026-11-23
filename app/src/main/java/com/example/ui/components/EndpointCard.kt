@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.ProviderType
 import com.example.data.repository.ApiEndpointItem
+import com.example.ui.DateFormats
 import com.example.ui.theme.AnthropicAccentDark
 import com.example.ui.theme.AnthropicAccentLight
 import com.example.ui.theme.CodeTextStyle
@@ -60,9 +61,6 @@ import com.example.ui.theme.GenericAccentDark
 import com.example.ui.theme.GenericAccentLight
 import com.example.ui.theme.OpenAiAccentDark
 import com.example.ui.theme.OpenAiAccentLight
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun EndpointCard(
@@ -70,6 +68,7 @@ fun EndpointCard(
     revealedKey: String?,
     onToggleReveal: () -> Unit,
     onCopyKey: () -> Unit,
+    onCopyUrl: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     isDuplicate: Boolean = false,
@@ -168,8 +167,23 @@ fun EndpointCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag("endpoint_url_${item.id}")
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("endpoint_url_${item.id}")
                 )
+                IconButton(
+                    onClick = onCopyUrl,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("copy_url_${item.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ContentCopy,
+                        contentDescription = stringResource(R.string.cd_copy_url),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -383,16 +397,12 @@ private fun providerIcon(providerType: ProviderType): ImageVector {
     }
 }
 
-private fun formatTimestamp(epochMillis: Long): String {
-    val formatter = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault())
-    return formatter.format(Date(epochMillis))
-}
+private fun formatTimestamp(epochMillis: Long): String = DateFormats.formatDateTime(epochMillis)
 
 @Composable
 private fun expiryLabel(expiresAtMillis: Long?): String {
     if (expiresAtMillis == null) return stringResource(R.string.expiry_never)
-    val formatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
-    return stringResource(R.string.expiry_on, formatter.format(Date(expiresAtMillis)))
+    return stringResource(R.string.expiry_on, DateFormats.formatExpiryDate(expiresAtMillis))
 }
 
 private fun isExpired(expiresAtMillis: Long?): Boolean =

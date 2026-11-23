@@ -18,5 +18,7 @@ data class ApiEndpointEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     // null means the key never expires.
-    val expiresAtMillis: Long? = null
+    val expiresAtMillis: Long? = null,
+    // null means active; a timestamp means it is in Trash until auto-purged.
+    val deletedAtMillis: Long? = null
 )

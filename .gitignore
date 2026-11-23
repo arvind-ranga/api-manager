@@ -18,5 +18,11 @@ local.properties
 
 # Secrets / local config
 .env
+.env.*
 *.gpg
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.properties
 google-services.json

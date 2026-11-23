@@ -25,7 +25,9 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.material.icons.outlined.QrCode
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedButton
@@ -52,11 +54,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.security.BiometricAvailability
 import com.example.data.security.VaultLockMode
 import com.example.data.security.VaultLockSettings
+import com.example.data.settings.SearchProvider
 import com.example.data.settings.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,15 +69,19 @@ fun SettingsSheet(
     lockSettings: VaultLockSettings,
     biometricAvailability: BiometricAvailability,
     themeMode: ThemeMode,
+    searchProvider: SearchProvider,
+    trashCount: Int,
     onSelectLockMode: (VaultLockMode) -> Unit,
     onRequestChangePin: () -> Unit,
     onThemeModeSelected: (ThemeMode) -> Unit,
+    onSearchProviderSelected: (SearchProvider) -> Unit,
     onExportBackup: (Uri) -> Unit,
     onImportBackup: (Uri) -> Unit,
     onQrSend: () -> Unit,
     onQrReceive: () -> Unit,
     onLanSend: () -> Unit,
     onLanReceive: () -> Unit,
+    onOpenTrash: () -> Unit,
     onOpenAbout: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -254,21 +262,33 @@ fun SettingsSheet(
                     onClick = onQrSend,
                     modifier = Modifier
                         .weight(1f)
+                        .height(56.dp)
                         .minimumInteractiveComponentSize()
                         .testTag("qr_send_button")
                 ) {
                     Icon(Icons.Outlined.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.action_qr_send))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.action_qr_send),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
                 }
                 ElevatedButton(
                     onClick = onQrReceive,
                     modifier = Modifier
                         .weight(1f)
+                        .height(56.dp)
                         .minimumInteractiveComponentSize()
                         .testTag("qr_receive_button")
                 ) {
-                    Text(stringResource(R.string.action_qr_receive))
+                    Icon(Icons.Outlined.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.action_qr_receive),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -277,20 +297,59 @@ fun SettingsSheet(
                     onClick = onLanSend,
                     modifier = Modifier
                         .weight(1f)
+                        .height(56.dp)
                         .minimumInteractiveComponentSize()
                         .testTag("lan_send_button")
                 ) {
-                    Text(stringResource(R.string.action_lan_send))
+                    Icon(Icons.Outlined.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.action_lan_send),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
                 }
                 OutlinedButton(
                     onClick = onLanReceive,
                     modifier = Modifier
                         .weight(1f)
+                        .height(56.dp)
                         .minimumInteractiveComponentSize()
                         .testTag("lan_receive_button")
                 ) {
-                    Text(stringResource(R.string.action_lan_receive))
+                    Icon(Icons.Outlined.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.action_lan_receive),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onOpenTrash,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .minimumInteractiveComponentSize()
+                    .testTag("open_trash_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.DeleteOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (trashCount > 0) {
+                        "🗑️ " + stringResource(R.string.trash_count, trashCount)
+                    } else {
+                        "🗑️ " + stringResource(R.string.section_trash)
+                    },
+                    color = MaterialTheme.colorScheme.error
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -304,6 +363,53 @@ fun SettingsSheet(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = stringResource(R.string.search_provider_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SearchProvider.entries.forEach { provider ->
+                    val selected = searchProvider == provider
+                    Surface(
+                        onClick = { onSearchProviderSelected(provider) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        border = BorderStroke(
+                            1.dp,
+                            if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                            }
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("search_provider_${provider.name.lowercase()}")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = selected, onClick = null)
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = "${provider.emoji} ${provider.displayName}",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(10.dp))
             OutlinedTextField(
                 value = searchQuery,
@@ -321,14 +427,14 @@ fun SettingsSheet(
             Button(
                 onClick = {
                     val query = searchQuery.ifBlank { "LLM API documentation" }
-                    context.openUrl("https://duckduckgo.com/?q=" + Uri.encode(query))
+                    context.openUrl(searchProvider.buildSearchUrl(query))
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .minimumInteractiveComponentSize()
                     .testTag("web_search_button")
             ) {
-                Text(stringResource(R.string.action_search_web))
+                Text("🔎 " + stringResource(R.string.action_search_web))
             }
 
             Spacer(modifier = Modifier.height(20.dp))

@@ -6,7 +6,11 @@
     <string name="cd_hide_key">Hide API key</string>
     <string name="cd_copy_key">Copy API key</string>
     <string name="cd_edit_endpoint">Edit endpoint</string>
-    <string name="cd_delete_endpoint">Delete endpoint</string>
+    <string name="cd_delete_endpoint">Move endpoint to Trash</string>
+    <string name="cd_copy_url">Copy endpoint URL</string>
+    <string name="cd_restore_endpoint">Restore endpoint</string>
+    <string name="cd_delete_permanently">Delete permanently</string>
+    <string name="cd_open_trash">Open Trash</string>
     <string name="cd_clear_search">Clear search</string>
     <string name="cd_empty_vault_illustration">Encrypted API vault illustration</string>
     <string name="cd_vault_badge_icon">Encrypted vault security status</string>
@@ -33,23 +37,31 @@
     <string name="field_api_key_label">API Key</string>
     <string name="field_api_key_placeholder">Paste secret key…</string>
     <string name="field_expiry_label">Expiry date (optional)</string>
-    <string name="field_expiry_placeholder">YYYY-MM-DD</string>
-    <string name="field_expiry_hint">Leave empty for a key that never expires.</string>
+    <string name="field_expiry_placeholder">DD-MM-YYYY</string>
+    <string name="field_expiry_hint">Leave empty for a key that never expires. Format: DD-MM-YYYY.</string>
     <string name="action_search_docs">Find documentation online</string>
     <string name="encryption_hint">Encrypted on-device with AES-256-GCM (12-byte IV)</string>
     <string name="action_save">Save Endpoint</string>
     <string name="action_update">Update</string>
     <string name="action_cancel">Cancel</string>
-    <string name="action_delete">Delete</string>
-    <string name="delete_dialog_title">Delete Endpoint?</string>
-    <string name="delete_dialog_message">This will permanently remove \"%1$s\" and its encrypted API key from your device.</string>
+    <string name="action_delete">Move to Trash</string>
+    <string name="action_delete_forever">Delete forever</string>
+    <string name="delete_dialog_title">Move to Trash?</string>
+    <string name="delete_dialog_message">\"%1$s\" will stay in Trash for 14 days. You can restore it any time before then; after 14 days it is removed automatically.</string>
+    <string name="delete_forever_dialog_title">Delete permanently?</string>
+    <string name="delete_forever_dialog_message">\"%1$s\" and its encrypted API key will be removed immediately. This cannot be undone.</string>
     <string name="error_name_required">Please enter a name for this endpoint.</string>
     <string name="error_url_invalid">Enter a valid http:// or https:// base URL.</string>
     <string name="error_key_required">Please enter an API key.</string>
-    <string name="error_expiry_invalid">Use YYYY-MM-DD or leave empty.</string>
+    <string name="error_expiry_invalid">Use DD-MM-YYYY or leave empty.</string>
     <string name="snackbar_saved">Endpoint encrypted and saved</string>
     <string name="snackbar_updated">Endpoint updated</string>
     <string name="snackbar_deleted">Endpoint deleted</string>
+    <string name="snackbar_moved_to_trash">Moved to Trash. Auto-deletes after 14 days.</string>
+    <string name="snackbar_deleted_permanently">Deleted permanently</string>
+    <string name="snackbar_restored">Endpoint restored</string>
+    <string name="snackbar_trash_emptied">Trash emptied</string>
+    <string name="snackbar_url_copied">Endpoint URL copied</string>
     <string name="snackbar_copied">API key copied to clipboard</string>
     <string name="snackbar_crypto_error">Could not encrypt or decrypt key</string>
     <string name="snackbar_backup_exported">Backup exported to your chosen file</string>
@@ -114,16 +126,19 @@
     <string name="sync_desc">Device-to-device transfer only. QR codes work fully offline; local-network transfer uses your Wi-Fi and no mobile data. Both generate a one-time code that encrypts keys during transfer.</string>
 
     <string name="section_discover">Find API endpoints</string>
-    <string name="discover_desc">Search the web with DuckDuckGo, then paste any official link into a new endpoint. We do not host or ship an API catalogue.</string>
-    <string name="search_hint">e.g. LLM API documentation</string>
+    <string name="discover_desc">Search the web with Google AI Mode or Brave AI, then paste the official link into a new endpoint. We do not host or ship an API catalogue, so results come straight from the search provider.</string>
+    <string name="search_hint">e.g. OpenAI API documentation</string>
     <string name="action_search_web">Search the web</string>
+    <string name="search_provider_label">Search engine</string>
+    <string name="search_provider_google">✨ Google AI Mode</string>
+    <string name="search_provider_brave">🦁 Brave AI</string>
 
     <string name="section_about">About</string>
     <string name="action_about">About &amp; privacy</string>
     <string name="about_version">Version %1$s (%2$d)</string>
     <string name="about_purpose">API Manager is a private vault for the API endpoints and secret keys you use for your own projects. Add a provider, paste its base URL and key, and the key is encrypted on your device before it is stored.</string>
-    <string name="about_security">Security: AES-256-GCM encryption with a key held in the Android Keystore. Optional PIN / fingerprint lock. Backups contain encrypted keys only and never leave your device unless you export them. Device-to-device transfers use a one-time code to re-encrypt keys for the receiving device.</string>
-    <string name="about_privacy">Privacy: we collect nothing. There are no accounts, no analytics, no ads and no Google Play services. The internet permission is used only for the optional local-network transfer between two of your devices. Web searches open in your own browser.</string>
+    <string name="about_security">Security: AES-256-GCM encryption with a key held in the Android Keystore. Optional PIN / fingerprint lock. Backups contain encrypted keys only and never leave your device unless you export them. Device-to-device transfers use a one-time code to re-encrypt keys for the receiving device. Deleted entries stay in Trash for 14 days and are then removed automatically.</string>
+    <string name="about_privacy">Privacy: we collect nothing. There are no accounts, no analytics, no ads and no Google Play services. The internet permission is used only for the optional local-network transfer between two of your devices. Google AI Mode or Brave AI searches open in your own browser; we do not host a search backend or an API catalogue.</string>
     <string name="about_links">Links</string>
     <string name="link_github">GitHub repository</string>
     <string name="link_ko_fi">Ko-fi</string>
@@ -156,4 +171,15 @@
     <string name="sync_transfer_code_help">Enter this code on the receiving device. Keys are encrypted with it before they leave this phone.</string>
     <string name="sync_transfer_code_hint">Transfer code</string>
     <string name="action_back">Back</string>
+
+    <!-- Trash -->
+    <string name="trash_title">🗑️ Trash</string>
+    <string name="trash_empty_title">Trash is empty</string>
+    <string name="trash_empty_body">Deleted endpoints stay here for 14 days, then they are removed automatically.</string>
+    <string name="trash_retention_note">Items in Trash are permanently deleted 14 days after deletion. Dates use DD-MM-YYYY.</string>
+    <string name="trash_item_deleted_on">Deleted %1$s · auto-removes %2$s</string>
+    <string name="action_empty_trash">Empty Trash</string>
+    <string name="action_restore">Restore</string>
+    <string name="section_trash">Trash</string>
+    <string name="trash_count">🗑️ Trash (%1$d)</string>
 </resources>

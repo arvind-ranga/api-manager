@@ -1,13 +1,15 @@
 # Builds the release APK for API Manager.
 # Run with: powershell -ExecutionPolicy Bypass -File build-apk.ps1
+#
+# Release signing credentials are never stored in this repo.
+# Set STORE_PASSWORD / KEY_PASSWORD in your shell, or you will be prompted.
+# The keystore itself (*.jks) is gitignored.
 
 $ErrorActionPreference = 'Stop'
 Set-Location -Path $PSScriptRoot
 
-$env:JAVA_HOME      = 'C:\Program Files\Android\Android Studio\jbr'
-$env:STORE_PASSWORD = 'apimanager'
-$env:KEY_PASSWORD   = 'apimanager'
-$env:KEYSTORE_PATH  = Join-Path $PSScriptRoot 'my-upload-key.jks'
+$env:JAVA_HOME = if ($env:JAVA_HOME) { $env:JAVA_HOME } else { 'C:\Program Files\Android\Android Studio\jbr' }
+$env:KEYSTORE_PATH = if ($env:KEYSTORE_PATH) { $env:KEYSTORE_PATH } else { Join-Path $PSScriptRoot 'my-upload-key.jks' }
 
 $gradle = Join-Path $PSScriptRoot 'gradlew.bat'
 
@@ -18,8 +20,26 @@ if (-not (Test-Path $gradle)) {
 }
 if (-not (Test-Path $env:KEYSTORE_PATH)) {
     Write-Host "Keystore not found at: $env:KEYSTORE_PATH" -ForegroundColor Red
+    Write-Host 'Create one with keytool, or set KEYSTORE_PATH to your existing keystore.' -ForegroundColor Yellow
     Read-Host 'Press Enter to close'
     exit 1
+}
+
+function Read-PlainSecret([string]$Prompt) {
+    $secure = Read-Host -Prompt $Prompt -AsSecureString
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try {
+        [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    } finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
+}
+
+if (-not $env:STORE_PASSWORD) {
+    $env:STORE_PASSWORD = Read-PlainSecret 'Keystore password'
+}
+if (-not $env:KEY_PASSWORD) {
+    $env:KEY_PASSWORD = $env:STORE_PASSWORD
 }
 
 Write-Host 'Building API Manager release APK...' -ForegroundColor Cyan

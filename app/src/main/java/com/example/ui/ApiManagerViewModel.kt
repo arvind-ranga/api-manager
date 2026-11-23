@@ -15,6 +15,7 @@ import com.example.data.security.AppLockManager
 import com.example.data.security.VaultLockMode
 import com.example.data.security.VaultLockSettings
 import com.example.data.settings.InMemoryThemePreferencesStore
+import com.example.data.settings.SearchProvider
 import com.example.data.settings.ThemeMode
 import com.example.data.settings.ThemePreferencesStore
 import com.example.data.sync.LocalSyncClient
@@ -34,11 +35,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class AppScreen {
-    VAULT, SETTINGS, ABOUT, QR_SEND, QR_RECEIVE, LAN_SEND, LAN_RECEIVE
+    VAULT, SETTINGS, ABOUT, TRASH, QR_SEND, QR_RECEIVE, LAN_SEND, LAN_RECEIVE
 }
 
 data class ApiManagerUiState(
     val allEndpoints: List<ApiEndpointItem> = emptyList(),
+    val trashEndpoints: List<ApiEndpointItem> = emptyList(),
     val filteredEndpoints: List<ApiEndpointItem> = emptyList(),
     val revealedKeys: Map<Long, String> = emptyMap(),
     val selectedProviderFilter: ProviderType? = null,
@@ -62,6 +64,7 @@ data class ApiManagerUiState(
     val biometricErrorMessage: String? = null,
     // Appearance & navigation
     val themeMode: ThemeMode = ThemeMode.AUTO,
+    val searchProvider: SearchProvider = SearchProvider.GOOGLE_AI,
     val currentScreen: AppScreen = AppScreen.VAULT,
     // Backup / sync
     val isSyncBusy: Boolean = false,
@@ -92,6 +95,7 @@ private data class InteractionState(
     val cooldownSeconds: Int = 0,
     val biometricErrorMessage: String? = null,
     val themeMode: ThemeMode = ThemeMode.AUTO,
+    val searchProvider: SearchProvider = SearchProvider.GOOGLE_AI,
     val currentScreen: AppScreen = AppScreen.VAULT,
     val isSyncBusy: Boolean = false,
     val qrChunks: List<String> = emptyList(),
@@ -133,16 +137,30 @@ class ApiManagerViewModel(
                 interactionState.update { it.copy(themeMode = mode) }
             }
         }
+        viewModelScope.launch {
+            themeStore.searchProvider.collect { provider ->
+                interactionState.update { it.copy(searchProvider = provider) }
+            }
+        }
+        viewModelScope.launch {
+            repository.purgeExpiredTrash()
+        }
     }
 
     private val themeFlow: Flow<ThemeMode> = themeStore.themeMode
+    private val searchProviderFlow: Flow<SearchProvider> = themeStore.searchProvider
+    private val endpointLists = combine(
+        repository.observeEndpoints(),
+        repository.observeTrash()
+    ) { active, trash -> active to trash }
 
     val uiState: StateFlow<ApiManagerUiState> = combine(
-        repository.observeEndpoints(),
+        endpointLists,
         lockManager.lockSettings,
         themeFlow,
+        searchProviderFlow,
         interactionState
-    ) { endpoints, lockSettings, themeMode, ui ->
+    ) { (endpoints, trashEndpoints), lockSettings, themeMode, searchProvider, ui ->
         val validIds = endpoints.mapTo(HashSet()) { it.id }
         val activeRevealed = ui.revealedKeys.filterKeys { it in validIds }
         val query = ui.searchQuery.trim()
@@ -160,6 +178,7 @@ class ApiManagerViewModel(
 
         ApiManagerUiState(
             allEndpoints = endpoints,
+            trashEndpoints = trashEndpoints,
             filteredEndpoints = filtered,
             revealedKeys = activeRevealed,
             selectedProviderFilter = ui.selectedProviderFilter,
@@ -181,6 +200,7 @@ class ApiManagerViewModel(
             cooldownSeconds = ui.cooldownSeconds,
             biometricErrorMessage = ui.biometricErrorMessage,
             themeMode = themeMode,
+            searchProvider = searchProvider,
             currentScreen = ui.currentScreen,
             isSyncBusy = ui.isSyncBusy,
             qrChunks = ui.qrChunks,
@@ -200,6 +220,37 @@ class ApiManagerViewModel(
 
     fun onThemeModeSelected(mode: ThemeMode) {
         viewModelScope.launch { themeStore.setThemeMode(mode) }
+    }
+
+    fun onSearchProviderSelected(provider: SearchProvider) {
+        viewModelScope.launch { themeStore.setSearchProvider(provider) }
+    }
+
+    fun onOpenTrash() {
+        viewModelScope.launch {
+            repository.purgeExpiredTrash()
+            interactionState.update { it.copy(currentScreen = AppScreen.TRASH) }
+        }
+    }
+
+    fun onRestoreFromTrash(item: ApiEndpointItem) {
+        viewModelScope.launch {
+            repository.restoreFromTrash(item.id).onSuccess {
+                interactionState.update { it.copy(snackbarMessageRes = R.string.snackbar_restored) }
+            }
+        }
+    }
+
+    fun onEmptyTrash() {
+        viewModelScope.launch {
+            repository.emptyTrash().onSuccess {
+                interactionState.update { it.copy(snackbarMessageRes = R.string.snackbar_trash_emptied) }
+            }
+        }
+    }
+
+    fun onUrlCopied() {
+        interactionState.update { it.copy(snackbarMessageRes = R.string.snackbar_url_copied) }
     }
 
     fun onOpenSettings() {
@@ -506,12 +557,22 @@ class ApiManagerViewModel(
     fun onConfirmDelete() {
         val target = interactionState.value.deleteTarget ?: return
         viewModelScope.launch {
-            repository.deleteEndpoint(target.id).onSuccess {
+            val permanently = target.isInTrash
+            val result = if (permanently) {
+                repository.deleteFromTrash(target.id)
+            } else {
+                repository.moveToTrash(target.id)
+            }
+            result.onSuccess {
                 interactionState.update {
                     it.copy(
                         deleteTarget = null,
                         revealedKeys = it.revealedKeys - target.id,
-                        snackbarMessageRes = R.string.snackbar_deleted
+                        snackbarMessageRes = if (permanently) {
+                            R.string.snackbar_deleted_permanently
+                        } else {
+                            R.string.snackbar_moved_to_trash
+                        }
                     )
                 }
             }

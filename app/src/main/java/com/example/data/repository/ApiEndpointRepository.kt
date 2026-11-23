@@ -23,8 +23,11 @@ data class ApiEndpointItem(
     val providerType: ProviderType,
     val createdAt: Long,
     val updatedAt: Long,
-    val expiresAtMillis: Long? = null
-)
+    val expiresAtMillis: Long? = null,
+    val deletedAtMillis: Long? = null
+) {
+    val isInTrash: Boolean get() = deletedAtMillis != null
+}
 
 class ApiEndpointRepository(
     private val dao: ApiEndpointDao,
@@ -33,6 +36,10 @@ class ApiEndpointRepository(
 ) {
     fun observeEndpoints(): Flow<List<ApiEndpointItem>> {
         return dao.observeAll().map { entities -> entities.map { it.toDomain() } }
+    }
+
+    fun observeTrash(): Flow<List<ApiEndpointItem>> {
+        return dao.observeTrash().map { entities -> entities.map { it.toDomain() } }
     }
 
     suspend fun addEndpoint(
@@ -139,6 +146,56 @@ class ApiEndpointRepository(
         }
     }
 
+    /** Moves an endpoint to Trash. It can be restored for [TRASH_RETENTION_DAYS] days. */
+    suspend fun moveToTrash(id: Long): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            dao.moveToTrash(id, System.currentTimeMillis())
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun restoreFromTrash(id: Long): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            dao.restoreFromTrash(id, System.currentTimeMillis())
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteFromTrash(id: Long): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            dao.deleteById(id)
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun emptyTrash(): Result<Int> = withContext(ioDispatcher) {
+        try {
+            Result.success(dao.emptyTrash())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /** Deletes Trash items older than 14 days. Safe to call on every app start. */
+    suspend fun purgeExpiredTrash(): Int = withContext(ioDispatcher) {
+        val cutoff = System.currentTimeMillis() - TRASH_RETENTION_MILLIS
+        dao.purgeTrashOlderThan(cutoff)
+    }
+
     suspend fun getEntitiesForBackup(): List<ApiEndpointEntity> = withContext(ioDispatcher) {
         dao.getAllOnce()
     }
@@ -199,6 +256,12 @@ class ApiEndpointRepository(
         providerType = ProviderType.fromStored(providerType),
         createdAt = createdAt,
         updatedAt = updatedAt,
-        expiresAtMillis = expiresAtMillis
+        expiresAtMillis = expiresAtMillis,
+        deletedAtMillis = deletedAtMillis
     )
+
+    companion object {
+        const val TRASH_RETENTION_DAYS = 14L
+        const val TRASH_RETENTION_MILLIS = TRASH_RETENTION_DAYS * 24L * 60L * 60L * 1000L
+    }
 }

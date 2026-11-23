@@ -12,8 +12,8 @@ android {
     applicationId = "com.aistudio.apimanager.vkrxmw"
     minSdk = 24
     targetSdk = 36
-    versionCode = 2
-    versionName = "2.0"
+    versionCode = 3
+    versionName = "2.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -24,7 +24,7 @@ android {
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
       keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      keyPassword = System.getenv("KEY_PASSWORD") ?: System.getenv("STORE_PASSWORD")
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
@@ -34,6 +34,10 @@ android {
     }
   }
 
+  val releaseSigningConfigured =
+    !System.getenv("STORE_PASSWORD").isNullOrBlank() &&
+      file(System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks").exists()
+
   buildTypes {
     release {
       isCrunchPngs = false
@@ -41,7 +45,9 @@ android {
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      // Local/sideload builds sign when credentials are supplied.
+      // Without them the APK stays unsigned, which keeps CI and F-Droid builds reproducible.
+      signingConfig = if (releaseSigningConfigured) signingConfigs.getByName("release") else null
     }
     debug {
       signingConfig = signingConfigs.getByName("debugConfig")

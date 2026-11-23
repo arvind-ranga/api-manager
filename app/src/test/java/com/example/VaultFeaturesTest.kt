@@ -11,9 +11,11 @@ import com.example.data.local.ApiEndpointEntity
 import com.example.data.local.AppDatabase
 import com.example.data.model.ProviderType
 import com.example.data.repository.ApiEndpointRepository
+import com.example.data.settings.SearchProvider
 import com.example.data.settings.ThemeMode
 import com.example.data.sync.LocalSyncClient
 import com.example.data.sync.QrBackupCodec
+import com.example.ui.DateFormats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -159,5 +161,62 @@ class VaultFeaturesTest {
     fun `theme mode falls back to auto for unknown stored value`() {
         assertEquals(ThemeMode.AUTO, ThemeMode.fromStored("unknown"))
         assertEquals(ThemeMode.DARK, ThemeMode.fromStored("dark"))
+    }
+
+    @Test
+    fun `deleting moves endpoint to trash and restore brings it back`() = runTest {
+        val id = repository.addEndpoint(
+            name = "Trash me",
+            baseUrl = "https://trash.example.com/v1",
+            plainApiKey = "secret",
+            providerType = ProviderType.CUSTOM
+        ).getOrThrow()
+
+        repository.moveToTrash(id).getOrThrow()
+        assertTrue(repository.observeEndpoints().first().isEmpty())
+        val trashed = repository.observeTrash().first().single()
+        assertTrue(trashed.isInTrash)
+        assertEquals("Trash me", trashed.name)
+
+        repository.restoreFromTrash(id).getOrThrow()
+        assertTrue(repository.observeTrash().first().isEmpty())
+        assertEquals("Trash me", repository.observeEndpoints().first().single().name)
+    }
+
+    @Test
+    fun `trash auto purge removes items older than 14 days`() = runTest {
+        val oldId = repository.addEndpoint(
+            "Old", "https://old.example.com", "key-1", ProviderType.CUSTOM
+        ).getOrThrow()
+        val freshId = repository.addEndpoint(
+            "Fresh", "https://fresh.example.com", "key-2", ProviderType.CUSTOM
+        ).getOrThrow()
+
+        val now = System.currentTimeMillis()
+        database.apiEndpointDao().moveToTrash(oldId, now - 15L * 24L * 60L * 60L * 1000L)
+        database.apiEndpointDao().moveToTrash(freshId, now)
+
+        assertEquals(1, repository.purgeExpiredTrash())
+        assertEquals(listOf("Fresh"), repository.observeTrash().first().map { it.name })
+    }
+
+    @Test
+    fun `search provider builds AI mode urls with endpoint suffix`() {
+        val google = SearchProvider.GOOGLE_AI.buildSearchUrl("Stripe")
+        assertTrue(google.startsWith("https://www.google.com/search?q="))
+        assertTrue(google.endsWith("&udm=50"))
+        assertTrue(google.contains("API+endpoint+base+URL+documentation"))
+
+        val brave = SearchProvider.BRAVE_AI.buildSearchUrl("Stripe API endpoint")
+        assertTrue(brave.startsWith("https://search.brave.com/search?q="))
+        assertTrue(brave.endsWith("&summary=1"))
+    }
+
+    @Test
+    fun `expiry date uses DD-MM-YYYY`() {
+        val millis = DateFormats.parseExpiryDate("31-12-2026")
+        assertTrue(millis != null)
+        assertEquals("31-12-2026", DateFormats.formatExpiryDate(millis!!))
+        assertEquals(null, DateFormats.parseExpiryDate("2026-12-31"))
     }
 }

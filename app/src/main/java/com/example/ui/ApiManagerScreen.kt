@@ -30,15 +30,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.DeleteForever
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -76,6 +83,8 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.model.ProviderType
+import com.example.data.repository.ApiEndpointItem
+import com.example.data.repository.ApiEndpointRepository
 import com.example.data.security.BiometricHelper
 import com.example.ui.components.AddEditEndpointDialog
 import com.example.ui.components.EndpointCard
@@ -179,21 +188,33 @@ fun ApiManagerScreen(
                 lockSettings = uiState.lockSettings,
                 biometricAvailability = biometricAvailability,
                 themeMode = uiState.themeMode,
+                searchProvider = uiState.searchProvider,
+                trashCount = uiState.trashEndpoints.size,
                 onSelectLockMode = viewModel::onSelectLockMode,
                 onRequestChangePin = viewModel::onRequestChangePin,
                 onThemeModeSelected = viewModel::onThemeModeSelected,
+                onSearchProviderSelected = viewModel::onSearchProviderSelected,
                 onExportBackup = viewModel::onExportBackup,
                 onImportBackup = viewModel::onImportBackup,
                 onQrSend = viewModel::onStartQrSend,
                 onQrReceive = viewModel::onStartQrReceive,
                 onLanSend = viewModel::onStartLanSend,
                 onLanReceive = viewModel::onStartLanReceive,
+                onOpenTrash = viewModel::onOpenTrash,
                 onOpenAbout = viewModel::onOpenAbout,
                 onDismiss = viewModel::onOpenVault
             )
         }
 
         AppScreen.ABOUT -> AboutScreen(onBack = viewModel::onBack)
+
+        AppScreen.TRASH -> TrashScreen(
+            items = uiState.trashEndpoints,
+            onRestore = viewModel::onRestoreFromTrash,
+            onDeleteForever = viewModel::onRequestDelete,
+            onEmptyTrash = viewModel::onEmptyTrash,
+            onBack = viewModel::onBack
+        )
 
         AppScreen.QR_SEND -> QrSendScreen(
             chunks = uiState.qrChunks,
@@ -250,11 +271,23 @@ fun ApiManagerScreen(
     }
 
     uiState.deleteTarget?.let { target ->
+        val permanently = target.isInTrash
         AlertDialog(
             onDismissRequest = viewModel::onDismissDelete,
-            title = { Text(stringResource(R.string.delete_dialog_title)) },
+            title = {
+                Text(
+                    stringResource(
+                        if (permanently) R.string.delete_forever_dialog_title else R.string.delete_dialog_title
+                    )
+                )
+            },
             text = {
-                Text(stringResource(R.string.delete_dialog_message, target.name))
+                Text(
+                    stringResource(
+                        if (permanently) R.string.delete_forever_dialog_message else R.string.delete_dialog_message,
+                        target.name
+                    )
+                )
             },
             confirmButton = {
                 Button(
@@ -267,7 +300,11 @@ fun ApiManagerScreen(
                         .minimumInteractiveComponentSize()
                         .testTag("confirm_delete_button")
                 ) {
-                    Text(stringResource(R.string.action_delete))
+                    Text(
+                        stringResource(
+                            if (permanently) R.string.action_delete_forever else R.string.action_delete
+                        )
+                    )
                 }
             },
             dismissButton = {
@@ -352,6 +389,29 @@ private fun VaultScreen(
                         ),
                         modifier = Modifier.testTag("topbar_offline_chip")
                     )
+
+                    if (uiState.trashEndpoints.isNotEmpty()) {
+                        IconButton(
+                            onClick = viewModel::onOpenTrash,
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("open_trash_topbar")
+                        ) {
+                            BadgedBox(
+                                badge = {
+                                    Badge {
+                                        Text(uiState.trashEndpoints.size.toString())
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.DeleteOutline,
+                                    contentDescription = stringResource(R.string.cd_open_trash),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
 
                     if (uiState.lockSettings.mode.isEnabled) {
                         IconButton(
@@ -540,6 +600,10 @@ private fun VaultScreen(
                                     },
                                     onEdit = { viewModel.onOpenEditDialog(item) },
                                     onDelete = { viewModel.onRequestDelete(item) },
+                                    onCopyUrl = {
+                                        copyPlainTextToClipboard(context, item.baseUrl)
+                                        viewModel.onUrlCopied()
+                                    },
                                     isDuplicate = (uiState.duplicateUrls[normalizeUrl(item.baseUrl)] ?: 0) > 1
                                 )
                             }
@@ -651,6 +715,197 @@ private fun FilteredEmptyState(
             textAlign = TextAlign.Center
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TrashScreen(
+    items: List<ApiEndpointItem>,
+    onRestore: (ApiEndpointItem) -> Unit,
+    onDeleteForever: (ApiEndpointItem) -> Unit,
+    onEmptyTrash: () -> Unit,
+    onBack: () -> Unit
+) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.trash_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
+                    }
+                },
+                actions = {
+                    if (items.isNotEmpty()) {
+                        TextButton(
+                            onClick = onEmptyTrash,
+                            modifier = Modifier.testTag("empty_trash_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteSweep,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("🗑️ " + stringResource(R.string.action_empty_trash))
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
+    ) { innerPadding ->
+        if (items.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "🗑️", style = MaterialTheme.typography.displayMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.trash_empty_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.trash_empty_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .testTag("trash_list"),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Text(
+                        text = stringResource(R.string.trash_retention_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                items(items = items, key = { it.id }) { item ->
+                    TrashItemCard(
+                        item = item,
+                        onRestore = { onRestore(item) },
+                        onDeleteForever = { onDeleteForever(item) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrashItemCard(
+    item: ApiEndpointItem,
+    onRestore: () -> Unit,
+    onDeleteForever: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("trash_item_${item.id}")
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = "🗑️ ${item.name}",
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = item.baseUrl,
+                style = com.example.ui.theme.CodeTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+            val deletedAt = item.deletedAtMillis ?: item.updatedAt
+            val purgeAt = deletedAt + ApiEndpointRepository.TRASH_RETENTION_MILLIS
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = stringResource(
+                    R.string.trash_item_deleted_on,
+                    DateFormats.formatDate(deletedAt),
+                    DateFormats.formatDate(purgeAt)
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = onRestore,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("restore_item_${item.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Restore,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(stringResource(R.string.action_restore))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(
+                    onClick = onDeleteForever,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("delete_forever_${item.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DeleteForever,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.action_delete_forever),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun copyPlainTextToClipboard(
+    context: Context,
+    text: String
+) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+    clipboard.setPrimaryClip(ClipData.newPlainText("Endpoint URL", text))
 }
 
 private fun copySensitiveToClipboard(

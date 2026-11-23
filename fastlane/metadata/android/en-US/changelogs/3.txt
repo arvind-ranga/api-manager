@@ -1,0 +1,9 @@
+Version 2.1
+
+- Added a Trash bin with restore and manual empty; deleted entries auto-purge after 14 days.
+- Added a copy-URL button on every endpoint for custom app linking.
+- Switched web search to Google AI Mode (udm=50) and Brave AI (summary=1) with an endpoint-focused query.
+- Changed all dates to DD-MM-YYYY.
+- Added emoji/icons to Trash, provider, Ko-fi, GitHub, and Sponsors entries.
+- Fixed QR send/receive button alignment in dark mode.
+- Removed hardcoded signing passwords from public build scripts (env vars or secure prompt).
