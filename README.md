@@ -46,7 +46,7 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 $env:STORE_PASSWORD='apimanager'
 $env:KEY_PASSWORD='apimanager'
 $env:KEYSTORE_PATH='C:\path\to\api-manager\my-upload-key.jks'
-& 'C:\Users\<you>\.gradle\wrapper\dists\gradle-9.3.1-bin\<hash>\gradle-9.3.1\bin\gradle.bat' assembleRelease --no-daemon
+& '.\gradlew.bat' assembleRelease --no-daemon
 ```
 
 Release output:
