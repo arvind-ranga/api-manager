@@ -93,7 +93,6 @@ fun QrSendScreen(
     chunks: List<String>,
     index: Int,
     isBusy: Boolean,
-    transferCode: String?,
     onPageChanged: (Int) -> Unit,
     onBack: () -> Unit
 ) {
@@ -111,8 +110,6 @@ fun QrSendScreen(
                 Text(stringResource(R.string.backup_desc))
                 return@Column
             }
-            TransferCodeDisplay(transferCode)
-            Spacer(modifier = Modifier.height(16.dp))
             val bitmap: Bitmap? = remember(chunks, index) { QrEncoder.encode(chunks[index]) }
             if (bitmap != null) {
                 Surface(
@@ -173,30 +170,22 @@ private fun RowButtons(
 fun QrReceiveScreen(
     message: String?,
     isBusy: Boolean,
-    passphraseInput: String,
-    onPassphraseChanged: (String) -> Unit,
     onScanned: (String) -> Unit,
     onAssemble: () -> Unit,
     onBack: () -> Unit
 ) {
     SyncScaffold(stringResource(R.string.sync_qr_receive_title), onBack) { modifier ->
-        Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(
                 text = message ?: stringResource(R.string.sync_camera_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = passphraseInput,
-                onValueChange = onPassphraseChanged,
-                label = { Text(stringResource(R.string.sync_transfer_code_hint)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
             QrScanner(onResult = onScanned)
-            Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onAssemble,
                 enabled = !isBusy,
@@ -213,7 +202,6 @@ fun LanSendScreen(
     url: String?,
     message: String?,
     isBusy: Boolean,
-    transferCode: String?,
     onStop: () -> Unit
 ) {
     SyncScaffold(stringResource(R.string.sync_lan_send_title), onStop) { modifier ->
@@ -243,11 +231,9 @@ fun LanSendScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            TransferCodeDisplay(transferCode)
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = stringResource(R.string.sync_camera_hint),
+                text = stringResource(R.string.sync_no_code_needed),
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -262,26 +248,26 @@ fun LanSendScreen(
 fun LanReceiveScreen(
     message: String?,
     isBusy: Boolean,
-    passphraseInput: String,
-    onPassphraseChanged: (String) -> Unit,
     onScanned: (String) -> Unit,
     onConnect: (String) -> Unit,
     onBack: () -> Unit
 ) {
     var address by remember { mutableStateOf("") }
     SyncScaffold(stringResource(R.string.sync_lan_receive_title), onBack) { modifier ->
-        Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(
                 text = message ?: stringResource(R.string.sync_camera_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(12.dp))
             QrScanner(onResult = { value ->
                 address = value
                 onScanned(value)
             })
-            Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = address,
                 onValueChange = { address = it },
@@ -289,18 +275,14 @@ fun LanReceiveScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = passphraseInput,
-                onValueChange = onPassphraseChanged,
-                label = { Text(stringResource(R.string.sync_transfer_code_hint)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+            Text(
+                text = stringResource(R.string.sync_no_code_needed),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = { onConnect(address) },
-                enabled = address.isNotBlank() && passphraseInput.isNotBlank() && !isBusy,
+                enabled = address.isNotBlank() && !isBusy,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isBusy) {
@@ -312,39 +294,6 @@ fun LanReceiveScreen(
                     Text(stringResource(R.string.action_connect))
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TransferCodeDisplay(code: String?) {
-    if (code == null) return
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = stringResource(R.string.sync_transfer_code_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = code,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.sync_transfer_code_help),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
         }
     }
 }

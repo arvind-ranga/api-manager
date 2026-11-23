@@ -15,6 +15,7 @@ import com.example.data.settings.SearchProvider
 import com.example.data.settings.ThemeMode
 import com.example.data.sync.LocalSyncClient
 import com.example.data.sync.QrBackupCodec
+import com.example.data.sync.TransferPayload
 import com.example.ui.DateFormats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -198,6 +199,26 @@ class VaultFeaturesTest {
 
         assertEquals(1, repository.purgeExpiredTrash())
         assertEquals(listOf("Fresh"), repository.observeTrash().first().map { it.name })
+    }
+
+    fun `endpoint name defaults to provider and numbers duplicates`() = runTest {
+        repository.addEndpoint("", "https://api.example.com/v1", "key-1", ProviderType.OPENAI)
+            .getOrThrow()
+        repository.addEndpoint(" ", "https://api.example.com/v1", "key-2", ProviderType.OPENAI)
+            .getOrThrow()
+
+        val items = repository.observeEndpoints().first()
+        assertEquals(listOf("OpenAI", "OpenAI 1"), items.map { it.name })
+    }
+
+    @Test
+    fun `transfer payload round trip carries its own key`() {
+        val backup = "{\"schemaVersion\":1,\"endpoints\":[]}"
+        val wrapped = TransferPayload.wrap(backup, "CODE123456")
+        val parsed = TransferPayload.unwrap(wrapped).getOrThrow()
+
+        assertEquals("CODE123456", parsed.transferCode)
+        assertEquals(backup, parsed.backupJson)
     }
 
     @Test

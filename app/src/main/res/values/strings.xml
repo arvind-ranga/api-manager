@@ -30,7 +30,7 @@
     <string name="dialog_add_title">Add API Endpoint</string>
     <string name="dialog_edit_title">Edit API Endpoint</string>
     <string name="field_name_label">Endpoint Name</string>
-    <string name="field_name_placeholder">e.g. Production LLM</string>
+    <string name="field_name_placeholder">Optional - defaults to provider name</string>
     <string name="field_provider_label">Provider Type</string>
     <string name="field_base_url_label">Base URL</string>
     <string name="field_base_url_placeholder">https://api.example.com/v1</string>
@@ -50,6 +50,7 @@
     <string name="delete_dialog_message">\"%1$s\" will stay in Trash for 14 days. You can restore it any time before then; after 14 days it is removed automatically.</string>
     <string name="delete_forever_dialog_title">Delete permanently?</string>
     <string name="delete_forever_dialog_message">\"%1$s\" and its encrypted API key will be removed immediately. This cannot be undone.</string>
+    <string name="field_name_optional">Optional. Defaults to the provider name, with 1, 2, 3… for extra keys.</string>
     <string name="error_name_required">Please enter a name for this endpoint.</string>
     <string name="error_url_invalid">Enter a valid http:// or https:// base URL.</string>
     <string name="error_key_required">Please enter an API key.</string>
@@ -167,6 +168,7 @@
     <string name="action_stop">Stop and back</string>
     <string name="sync_camera_hint">Point the camera at the QR code shown on the other device.</string>
     <string name="sync_camera_permission">Camera permission is needed to scan a QR code.</string>
+    <string name="sync_no_code_needed">No code to type. The transfer key is included in the QR code.</string>
     <string name="sync_transfer_code_label">One-time transfer code</string>
     <string name="sync_transfer_code_help">Enter this code on the receiving device. Keys are encrypted with it before they leave this phone.</string>
     <string name="sync_transfer_code_hint">Transfer code</string>
@@ -179,6 +181,8 @@
     <string name="trash_retention_note">Items in Trash are permanently deleted 14 days after deletion. Dates use DD-MM-YYYY.</string>
     <string name="trash_item_deleted_on">Deleted %1$s · auto-removes %2$s</string>
     <string name="action_empty_trash">Empty Trash</string>
+    <string name="empty_trash_dialog_title">Empty Trash?</string>
+    <string name="empty_trash_dialog_message">Permanently delete all %1$d item(s) in Trash? This cannot be undone.</string>
     <string name="action_restore">Restore</string>
     <string name="section_trash">Trash</string>
     <string name="trash_count">🗑️ Trash (%1$d)</string>

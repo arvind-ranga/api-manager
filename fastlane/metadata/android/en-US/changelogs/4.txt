@@ -1,0 +1,9 @@
+Minor polish and transfer updates:
+
+* Added a confirmation dialog before emptying Trash.
+* QR and LAN transfers now carry their key in the QR code; no code to type.
+* Endpoint name is optional and defaults to the provider name, with 1, 2, 3 for duplicates.
+* Reduced phone-only text size slightly; tablet layout is unchanged.
+* Aligned QR/LAN settings buttons and the add button.
+* Cleaned up the README.
+* Rotated the local release signing password.

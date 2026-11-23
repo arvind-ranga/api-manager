@@ -143,9 +143,14 @@ fun AddEditEndpointDialog(
                     },
                     label = { Text(stringResource(R.string.field_name_label)) },
                     placeholder = { Text(stringResource(R.string.field_name_placeholder)) },
+                    supportingText = nameError?.let { res ->
+                        {
+                            Text(stringResource(res))
+                        }
+                    } ?: {
+                        Text(stringResource(R.string.field_name_optional))
+                    },
                     singleLine = true,
-                    isError = nameError != null,
-                    supportingText = nameError?.let { res -> { Text(stringResource(res)) } },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier
                         .fillMaxWidth()

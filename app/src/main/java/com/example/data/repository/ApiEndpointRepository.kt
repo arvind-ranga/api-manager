@@ -52,11 +52,11 @@ class ApiEndpointRepository(
         try {
             val trimmedUrl = normalizeUrl(baseUrl.trim())
             val trimmedKey = plainApiKey.trim()
-            require(name.isNotBlank()) { "Endpoint name cannot be empty" }
             require(trimmedUrl.isNotEmpty()) { "Base URL cannot be empty" }
             require(trimmedKey.isNotEmpty()) { "API key cannot be empty" }
 
-            val finalName = suggestNameForUrl(name.trim(), trimmedUrl)
+            val requestedName = name.trim().ifBlank { providerType.displayName }
+            val finalName = suggestNameForUrl(requestedName, trimmedUrl)
             val encrypted = cryptoManager.encrypt(trimmedKey)
             val now = System.currentTimeMillis()
             val id = dao.insert(
@@ -93,15 +93,21 @@ class ApiEndpointRepository(
                 ?: return@withContext Result.failure(IllegalArgumentException("Endpoint not found"))
             val trimmedUrl = normalizeUrl(baseUrl.trim())
             val trimmedKey = plainApiKey.trim()
-            require(name.isNotBlank()) { "Endpoint name cannot be empty" }
             require(trimmedUrl.isNotEmpty()) { "Base URL cannot be empty" }
             require(trimmedKey.isNotEmpty()) { "API key cannot be empty" }
+
+            val requestedName = name.trim().ifBlank { providerType.displayName }
+            val finalName = if (existing.name == requestedName) {
+                existing.name
+            } else {
+                suggestNameForUrl(requestedName, trimmedUrl, exceptId = id)
+            }
 
             val encrypted = cryptoManager.encrypt(trimmedKey)
             dao.update(
                 existing.copy(
                     remoteId = existing.remoteId.ifBlank { UUID.randomUUID().toString() },
-                    name = name.trim(),
+                    name = finalName,
                     baseUrl = trimmedUrl,
                     encryptedApiKey = encrypted.ciphertextBase64,
                     iv = encrypted.ivBase64,
@@ -229,11 +235,11 @@ class ApiEndpointRepository(
      * If another key for the same website already exists, append 1, 2, 3, ...
      * so keys for one provider are easy to tell apart.
      */
-    suspend fun suggestNameForUrl(name: String, baseUrl: String): String =
+    suspend fun suggestNameForUrl(name: String, baseUrl: String, exceptId: Long? = null): String =
         withContext(ioDispatcher) {
             val key = normalizeUrl(baseUrl)
             val taken = dao.getAllOnce()
-                .filter { normalizeUrl(it.baseUrl) == key }
+                .filter { it.id != exceptId && normalizeUrl(it.baseUrl) == key }
                 .mapTo(HashSet()) { it.name.lowercase() }
             if (key.isEmpty() || name.lowercase() !in taken) return@withContext name
             var index = 1

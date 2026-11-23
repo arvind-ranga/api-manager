@@ -5,6 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import com.example.data.settings.ThemeMode
 
 private val DarkColorScheme = darkColorScheme(
@@ -68,9 +70,14 @@ fun ApiManagerTheme(
         ThemeMode.AUTO -> isSystemInDarkTheme()
     }
 
+    val isCompactWidth = LocalConfiguration.current.screenWidthDp < 600
+    val activeTypography = remember(isCompactWidth) {
+        if (isCompactWidth) Typography.scaledForPhone() else Typography
+    }
+
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        typography = Typography,
+        typography = activeTypography,
         content = content
     )
 }

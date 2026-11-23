@@ -8,10 +8,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -228,26 +232,45 @@ fun SettingsSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedButton(
                     onClick = { exportLauncher.launch("api-manager-backup.zip") },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .minimumInteractiveComponentSize()
                         .testTag("export_backup_button")
                 ) {
-                    Icon(Icons.Outlined.Backup, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.action_export_backup))
+                    Icon(Icons.Outlined.Backup, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.action_export_backup),
+                        style = MaterialTheme.typography.labelMedium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
                 }
                 OutlinedButton(
                     onClick = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .minimumInteractiveComponentSize()
                         .testTag("import_backup_button")
                 ) {
-                    Text(stringResource(R.string.action_import_backup))
+                    Text(
+                        text = stringResource(R.string.action_import_backup),
+                        style = MaterialTheme.typography.labelMedium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -257,74 +280,56 @@ fun SettingsSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ElevatedButton(
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TransferActionButton(
+                    text = stringResource(R.string.action_qr_send),
+                    icon = Icons.Outlined.QrCode,
                     onClick = onQrSend,
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
-                        .minimumInteractiveComponentSize()
+                        .fillMaxHeight()
                         .testTag("qr_send_button")
-                ) {
-                    Icon(Icons.Outlined.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.action_qr_send),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2
-                    )
-                }
-                ElevatedButton(
+                )
+                TransferActionButton(
+                    text = stringResource(R.string.action_qr_receive),
+                    icon = Icons.Outlined.QrCodeScanner,
                     onClick = onQrReceive,
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
-                        .minimumInteractiveComponentSize()
+                        .fillMaxHeight()
                         .testTag("qr_receive_button")
-                ) {
-                    Icon(Icons.Outlined.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.action_qr_receive),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2
-                    )
-                }
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TransferActionButton(
+                    text = stringResource(R.string.action_lan_send),
+                    icon = Icons.Outlined.QrCode,
                     onClick = onLanSend,
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
-                        .minimumInteractiveComponentSize()
+                        .fillMaxHeight()
                         .testTag("lan_send_button")
-                ) {
-                    Icon(Icons.Outlined.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.action_lan_send),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2
-                    )
-                }
-                OutlinedButton(
+                )
+                TransferActionButton(
+                    text = stringResource(R.string.action_lan_receive),
+                    icon = Icons.Outlined.QrCodeScanner,
                     onClick = onLanReceive,
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
-                        .minimumInteractiveComponentSize()
+                        .fillMaxHeight()
                         .testTag("lan_receive_button")
-                ) {
-                    Icon(Icons.Outlined.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.action_lan_receive),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2
-                    )
-                }
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -451,6 +456,33 @@ fun SettingsSheet(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.action_about))
             }
+        }
+    }
+}
+
+@Composable
+private fun TransferActionButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+        modifier = modifier.minimumInteractiveComponentSize()
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
         }
     }
 }

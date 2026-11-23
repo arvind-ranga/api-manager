@@ -16,9 +16,11 @@ import java.util.UUID
  */
 class LocalSyncServer(
     private val payload: ByteArray,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val transferCode: String? = null
 ) {
     private val token: String = UUID.randomUUID().toString()
+    private val nonce: String = UUID.randomUUID().toString().replace("-", "")
     @Volatile private var running = false
     private var serverSocket: ServerSocket? = null
 
@@ -27,7 +29,8 @@ class LocalSyncServer(
         serverSocket = socket
         running = true
         val address = localIpAddress() ?: "127.0.0.1"
-        val url = "http://$address:$port/sync?token=$token"
+        val url = "http://$address:$port/sync?token=$token" +
+            transferCode?.let { "&code=$it&nonce=$nonce" }.orEmpty()
 
         scope.launch(Dispatchers.IO) {
             while (running) {
@@ -57,7 +60,8 @@ class LocalSyncServer(
             client.soTimeout = 5_000
             val reader = client.getInputStream().bufferedReader(Charsets.US_ASCII)
             val requestLine = reader.readLine() ?: return
-            val expectedPath = "/sync?token=$token"
+            val expectedPath = "/sync?token=$token" +
+                (transferCode?.let { "&code=$it&nonce=$nonce" } ?: "")
             if (!requestLine.contains(expectedPath)) {
                 client.getOutputStream().use { it.write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".toByteArray()) }
                 return

@@ -21,6 +21,7 @@ import com.example.data.settings.ThemePreferencesStore
 import com.example.data.sync.LocalSyncClient
 import com.example.data.sync.LocalSyncServer
 import com.example.data.sync.QrBackupCodec
+import com.example.data.sync.TransferPayload
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -50,6 +51,7 @@ data class ApiManagerUiState(
     val editingEndpoint: ApiEndpointItem? = null,
     val editingPlainKey: String = "",
     val isPinSetupDialogOpen: Boolean = false,
+    val isConfirmEmptyTrashDialogOpen: Boolean = false,
     val deleteTarget: ApiEndpointItem? = null,
     @StringRes val snackbarMessageRes: Int? = null,
     val snackbarText: String? = null,
@@ -71,9 +73,7 @@ data class ApiManagerUiState(
     val qrChunks: List<String> = emptyList(),
     val qrIndex: Int = 0,
     val syncUrl: String? = null,
-    val syncMessage: String? = null,
-    val transferCode: String? = null,
-    val transferPassphraseInput: String = ""
+    val syncMessage: String? = null
 )
 
 private data class InteractionState(
@@ -84,6 +84,7 @@ private data class InteractionState(
     val editingEndpoint: ApiEndpointItem? = null,
     val editingPlainKey: String = "",
     val isPinSetupDialogOpen: Boolean = false,
+    val isConfirmEmptyTrashDialogOpen: Boolean = false,
     val deleteTarget: ApiEndpointItem? = null,
     @StringRes val snackbarMessageRes: Int? = null,
     val snackbarText: String? = null,
@@ -102,8 +103,6 @@ private data class InteractionState(
     val qrIndex: Int = 0,
     val syncUrl: String? = null,
     val syncMessage: String? = null,
-    val transferCode: String? = null,
-    val transferPassphraseInput: String = "",
     val pendingModeAfterPinSetup: VaultLockMode? = null
 )
 
@@ -189,6 +188,7 @@ class ApiManagerViewModel(
             editingPlainKey = ui.editingPlainKey,
             isPinSetupDialogOpen = ui.isPinSetupDialogOpen,
             deleteTarget = ui.deleteTarget,
+            isConfirmEmptyTrashDialogOpen = ui.isConfirmEmptyTrashDialogOpen,
             snackbarMessageRes = ui.snackbarMessageRes,
             snackbarText = ui.snackbarText,
             isLoading = false,
@@ -206,9 +206,7 @@ class ApiManagerViewModel(
             qrChunks = ui.qrChunks,
             qrIndex = ui.qrIndex,
             syncUrl = ui.syncUrl,
-            syncMessage = ui.syncMessage,
-            transferCode = ui.transferCode,
-            transferPassphraseInput = ui.transferPassphraseInput
+            syncMessage = ui.syncMessage
         )
     }.stateIn(
         scope = viewModelScope,
@@ -242,9 +240,22 @@ class ApiManagerViewModel(
     }
 
     fun onEmptyTrash() {
+        interactionState.update { it.copy(isConfirmEmptyTrashDialogOpen = true) }
+    }
+
+    fun onDismissEmptyTrashDialog() {
+        interactionState.update { it.copy(isConfirmEmptyTrashDialogOpen = false) }
+    }
+
+    fun onConfirmEmptyTrash() {
         viewModelScope.launch {
             repository.emptyTrash().onSuccess {
-                interactionState.update { it.copy(snackbarMessageRes = R.string.snackbar_trash_emptied) }
+                interactionState.update {
+                    it.copy(
+                        isConfirmEmptyTrashDialogOpen = false,
+                        snackbarMessageRes = R.string.snackbar_trash_emptied
+                    )
+                }
             }
         }
     }
@@ -277,8 +288,7 @@ class ApiManagerViewModel(
                 it.copy(
                     currentScreen = AppScreen.VAULT,
                     syncUrl = null,
-                    syncMessage = null,
-                    transferCode = null
+                    syncMessage = null
                 )
             }
         }
@@ -642,7 +652,7 @@ class ApiManagerViewModel(
         val manager = checkNotNull(backupManager) { "Backup is unavailable" }
         val envelope = manager.buildPortableEnvelope(repository.getEntitiesForBackup(), code)
             .getOrThrow()
-        manager.toJson(envelope)
+        TransferPayload.wrap(manager.toJson(envelope), code)
     }
 
     fun onStartQrSend() {
@@ -657,8 +667,7 @@ class ApiManagerViewModel(
                             isSyncBusy = false,
                             qrChunks = chunks,
                             qrIndex = 0,
-                            syncMessage = null,
-                            transferCode = code
+                            syncMessage = null
                         )
                     }
                 }
@@ -686,15 +695,9 @@ class ApiManagerViewModel(
         interactionState.update {
             it.copy(
                 currentScreen = AppScreen.QR_RECEIVE,
-                syncMessage = "Scan all QR codes, then tap Assemble",
-                transferPassphraseInput = "",
-                transferCode = null
+                syncMessage = "Scan all QR codes, then tap Assemble"
             )
         }
-    }
-
-    fun onTransferPassphraseChanged(value: String) {
-        interactionState.update { it.copy(transferPassphraseInput = value) }
     }
 
     private val receivedQrParts = LinkedHashMap<Int, QrBackupCodec.Part>()
@@ -716,17 +719,13 @@ class ApiManagerViewModel(
             interactionState.update { it.copy(syncMessage = "Backup is unavailable") }
             return
         }
-        val code = interactionState.value.transferPassphraseInput.trim()
-        if (code.isBlank()) {
-            interactionState.update { it.copy(syncMessage = "Enter the transfer code shown by the sender") }
-            return
-        }
         viewModelScope.launch {
             interactionState.update { it.copy(isSyncBusy = true) }
             runCatching {
                 val json = QrBackupCodec.assemble(receivedQrParts.values.toList()).getOrThrow()
-                val envelope = manager.fromJson(json).getOrThrow()
-                val entities = manager.fromPortableEnvelope(envelope, code).getOrThrow()
+                val transfer = TransferPayload.unwrap(json).getOrThrow()
+                val envelope = manager.fromJson(transfer.backupJson).getOrThrow()
+                val entities = manager.fromPortableEnvelope(envelope, transfer.transferCode).getOrThrow()
                 repository.importEntities(entities).getOrThrow()
             }.onSuccess { count ->
                 receivedQrParts.clear()
@@ -734,8 +733,7 @@ class ApiManagerViewModel(
                     it.copy(
                         isSyncBusy = false,
                         currentScreen = AppScreen.VAULT,
-                        snackbarText = "Imported $count endpoint(s) from QR codes",
-                        transferPassphraseInput = ""
+                        snackbarText = "Imported $count endpoint(s) from QR codes"
                     )
                 }
             }.onFailure { error ->
@@ -761,8 +759,12 @@ class ApiManagerViewModel(
                 val json = currentQrPayload(code).getOrThrow()
                 val envelope = manager.fromJson(json).getOrThrow()
                 val bytes = manager.toZipBytes(envelope)
+                val server = LocalSyncServer(
+                    payload = bytes,
+                    scope = viewModelScope,
+                    transferCode = code
+                )
                 localSyncServer?.stop()
-                val server = LocalSyncServer(bytes, viewModelScope)
                 localSyncServer = server
                 server.start()
             }.onSuccess { url ->
@@ -770,8 +772,7 @@ class ApiManagerViewModel(
                     it.copy(
                         isSyncBusy = false,
                         syncUrl = url,
-                        syncMessage = null,
-                        transferCode = code
+                        syncMessage = null
                     )
                 }
             }.onFailure { error ->
@@ -788,9 +789,7 @@ class ApiManagerViewModel(
         interactionState.update {
             it.copy(
                 currentScreen = AppScreen.LAN_RECEIVE,
-                syncMessage = "Scan the sender's QR code and enter the transfer code",
-                transferPassphraseInput = "",
-                transferCode = null
+                syncMessage = "Scan the sender's QR code. Tap Connect."
             )
         }
     }
@@ -801,25 +800,20 @@ class ApiManagerViewModel(
             interactionState.update { it.copy(syncMessage = "Backup is unavailable") }
             return
         }
-        val code = interactionState.value.transferPassphraseInput.trim()
-        if (code.isBlank()) {
-            interactionState.update { it.copy(syncMessage = "Enter the transfer code shown by the sender") }
-            return
-        }
         viewModelScope.launch {
             interactionState.update { it.copy(isSyncBusy = true, syncMessage = "Downloading…") }
             runCatching {
                 val bytes = LocalSyncClient.download(value.trim()).getOrThrow()
-                val envelope = manager.fromZipBytes(bytes).getOrThrow()
-                val entities = manager.fromPortableEnvelope(envelope, code).getOrThrow()
+                val transfer = TransferPayload.unwrap(String(bytes, Charsets.UTF_8)).getOrThrow()
+                val envelope = manager.fromJson(transfer.backupJson).getOrThrow()
+                val entities = manager.fromPortableEnvelope(envelope, transfer.transferCode).getOrThrow()
                 repository.importEntities(entities).getOrThrow()
             }.onSuccess { count ->
                 interactionState.update {
                     it.copy(
                         isSyncBusy = false,
                         currentScreen = AppScreen.VAULT,
-                        snackbarText = "Imported $count endpoint(s) over LAN",
-                        transferPassphraseInput = ""
+                        snackbarText = "Imported $count endpoint(s) over LAN"
                     )
                 }
             }.onFailure { error ->
@@ -837,8 +831,7 @@ class ApiManagerViewModel(
             it.copy(
                 syncUrl = null,
                 currentScreen = AppScreen.SETTINGS,
-                syncMessage = null,
-                transferCode = null
+                syncMessage = null
             )
         }
     }

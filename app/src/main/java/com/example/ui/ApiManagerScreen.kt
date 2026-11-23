@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -220,7 +221,6 @@ fun ApiManagerScreen(
             chunks = uiState.qrChunks,
             index = uiState.qrIndex,
             isBusy = uiState.isSyncBusy,
-            transferCode = uiState.transferCode,
             onPageChanged = viewModel::onQrPageChanged,
             onBack = viewModel::onBack
         )
@@ -228,8 +228,6 @@ fun ApiManagerScreen(
         AppScreen.QR_RECEIVE -> QrReceiveScreen(
             message = uiState.syncMessage,
             isBusy = uiState.isSyncBusy,
-            passphraseInput = uiState.transferPassphraseInput,
-            onPassphraseChanged = viewModel::onTransferPassphraseChanged,
             onScanned = viewModel::onQrScanned,
             onAssemble = viewModel::onAssembleQrBackup,
             onBack = viewModel::onBack
@@ -239,15 +237,12 @@ fun ApiManagerScreen(
             url = uiState.syncUrl,
             message = uiState.syncMessage,
             isBusy = uiState.isSyncBusy,
-            transferCode = uiState.transferCode,
             onStop = viewModel::onStopLocalSync
         )
 
         AppScreen.LAN_RECEIVE -> LanReceiveScreen(
             message = uiState.syncMessage,
             isBusy = uiState.isSyncBusy,
-            passphraseInput = uiState.transferPassphraseInput,
-            onPassphraseChanged = viewModel::onTransferPassphraseChanged,
             onScanned = { viewModel.showSyncMessage("Address captured from QR. Tap Connect.") },
             onConnect = viewModel::onLanAddressEntered,
             onBack = viewModel::onBack
@@ -313,6 +308,45 @@ fun ApiManagerScreen(
                     modifier = Modifier
                         .minimumInteractiveComponentSize()
                         .testTag("cancel_delete_button")
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
+    }
+
+    if (uiState.isConfirmEmptyTrashDialogOpen) {
+        AlertDialog(
+            onDismissRequest = viewModel::onDismissEmptyTrashDialog,
+            title = { Text(stringResource(R.string.empty_trash_dialog_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.empty_trash_dialog_message,
+                        uiState.trashEndpoints.size
+                    )
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = viewModel::onConfirmEmptyTrash,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("confirm_empty_trash_button")
+                ) {
+                    Text(stringResource(R.string.action_empty_trash))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = viewModel::onDismissEmptyTrashDialog,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("cancel_empty_trash_button")
                 ) {
                     Text(stringResource(R.string.action_cancel))
                 }
@@ -451,7 +485,9 @@ private fun VaultScreen(
                 onClick = viewModel::onOpenAddDialog,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_endpoint_fab")
+                modifier = Modifier
+                    .size(52.dp)
+                    .testTag("add_endpoint_fab")
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
