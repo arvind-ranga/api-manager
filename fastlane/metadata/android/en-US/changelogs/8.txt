@@ -1,0 +1,8 @@
+Provider and transfer updates:
+
+* Replaced Generic with Gemini, Groq, and OpenRouter (with badges and key-management links).
+* ZIP backups now re-encrypt keys with your password, so restored keys show and edit on any device. Old backups still import.
+* LAN transfer sends the transfer payload directly, fixing sender/receiver mismatch.
+* Fixed QR scanning on phones with row-padded camera frames.
+* Local server now uses an OS-assigned port included in the QR code.
+* Removed F-Droid/IzzyOnDroid links; GitHub only.

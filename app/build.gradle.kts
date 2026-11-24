@@ -12,8 +12,8 @@ android {
     applicationId = "com.aistudio.apimanager.vkrxmw"
     minSdk = 24
     targetSdk = 36
-    versionCode = 7
-    versionName = "2.5"
+    versionCode = 8
+    versionName = "2.6"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -46,7 +46,7 @@ android {
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       // Local/sideload builds sign when credentials are supplied.
-      // Without them the APK stays unsigned, which keeps CI and F-Droid builds reproducible.
+      // Without them the APK stays unsigned, which keeps CI builds reproducible.
       signingConfig = if (releaseSigningConfigured) signingConfigs.getByName("release") else null
     }
     debug {

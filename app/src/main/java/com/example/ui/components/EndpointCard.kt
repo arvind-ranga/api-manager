@@ -57,10 +57,14 @@ import com.example.ui.theme.AnthropicAccentLight
 import com.example.ui.theme.CodeTextStyle
 import com.example.ui.theme.CustomAccentDark
 import com.example.ui.theme.CustomAccentLight
-import com.example.ui.theme.GenericAccentDark
-import com.example.ui.theme.GenericAccentLight
+import com.example.ui.theme.GeminiAccentDark
+import com.example.ui.theme.GeminiAccentLight
+import com.example.ui.theme.GroqAccentDark
+import com.example.ui.theme.GroqAccentLight
 import com.example.ui.theme.OpenAiAccentDark
 import com.example.ui.theme.OpenAiAccentLight
+import com.example.ui.theme.OpenRouterAccentDark
+import com.example.ui.theme.OpenRouterAccentLight
 
 @Composable
 fun EndpointCard(
@@ -383,7 +387,9 @@ private fun providerAccentColor(providerType: ProviderType): Color {
     return when (providerType) {
         ProviderType.OPENAI -> if (isDark) OpenAiAccentDark else OpenAiAccentLight
         ProviderType.ANTHROPIC -> if (isDark) AnthropicAccentDark else AnthropicAccentLight
-        ProviderType.GENERIC -> if (isDark) GenericAccentDark else GenericAccentLight
+        ProviderType.GEMINI -> if (isDark) GeminiAccentDark else GeminiAccentLight
+        ProviderType.GROQ -> if (isDark) GroqAccentDark else GroqAccentLight
+        ProviderType.OPENROUTER -> if (isDark) OpenRouterAccentDark else OpenRouterAccentLight
         ProviderType.CUSTOM -> if (isDark) CustomAccentDark else CustomAccentLight
     }
 }
@@ -392,7 +398,9 @@ private fun providerIcon(providerType: ProviderType): ImageVector {
     return when (providerType) {
         ProviderType.OPENAI -> Icons.Outlined.AutoAwesome
         ProviderType.ANTHROPIC -> Icons.Outlined.Psychology
-        ProviderType.GENERIC -> Icons.Outlined.Http
+        ProviderType.GEMINI -> Icons.Outlined.AutoAwesome
+        ProviderType.GROQ -> Icons.Outlined.Http
+        ProviderType.OPENROUTER -> Icons.Outlined.Link
         ProviderType.CUSTOM -> Icons.Outlined.Tune
     }
 }

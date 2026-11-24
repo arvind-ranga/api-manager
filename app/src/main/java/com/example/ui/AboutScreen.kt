@@ -74,6 +74,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 LinkItem("🤖 " + stringResource(R.string.provider_openai), "https://platform.openai.com/api-keys"),
                 LinkItem("🧠 " + stringResource(R.string.provider_anthropic), "https://console.anthropic.com/settings/keys"),
                 LinkItem("✨ " + stringResource(R.string.provider_gemini), "https://aistudio.google.com/app/apikey"),
+                LinkItem("⚡ " + stringResource(R.string.provider_groq), "https://console.groq.com/keys"),
                 LinkItem("🔀 " + stringResource(R.string.provider_openrouter), "https://openrouter.ai/keys")
             ).forEach { link ->
                 TextButton(onClick = { context.openUrl(link.url) }) {
@@ -90,9 +91,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 LinkItem(
                     "🇮🇳 " + stringResource(R.string.link_upi),
                     "upi://pay?pa=electriclegend@yescred&pn=Arvind%20Ranga&cu=INR"
-                ),
-                LinkItem("🤖 " + stringResource(R.string.link_izzyondroid), "https://apt.izzysoft.de/fdroid/index/apk/com.aistudio.apimanager.vkrxmw"),
-                LinkItem("🛍️ " + stringResource(R.string.link_fdroid), "https://f-droid.org/")
+                )
             ).forEach { link ->
                 TextButton(onClick = { context.openUrl(link.url) }) {
                     Text(link.label)

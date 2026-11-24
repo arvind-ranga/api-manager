@@ -29,15 +29,17 @@ class LocalSyncServer(
     @Volatile private var running = false
     private var serverSocket: ServerSocket? = null
 
-    suspend fun start(port: Int = DEFAULT_PORT): String = withContext(Dispatchers.IO) {
-        // Bind to the wildcard address so any active interface accepts the connection.
+    suspend fun start(port: Int = 0): String = withContext(Dispatchers.IO) {
+        // Bind to the wildcard address on an OS-assigned port (0) so we never
+        // collide with another app, then advertise the actual bound port.
         val socket = ServerSocket()
         socket.reuseAddress = true
         socket.bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), port))
         serverSocket = socket
         running = true
+        val actualPort = socket.localPort
         val address = localIpAddress() ?: "127.0.0.1"
-        val url = "http://$address:$port/sync?token=$token" +
+        val url = "http://$address:$actualPort/sync?token=$token" +
             transferCode?.let { "&code=$it&nonce=$nonce" }.orEmpty()
 
         scope.launch(Dispatchers.IO) {
@@ -130,6 +132,6 @@ class LocalSyncServer(
     }
 
     companion object {
-        const val DEFAULT_PORT = 8976
+        const val DEFAULT_PORT = 0
     }
 }

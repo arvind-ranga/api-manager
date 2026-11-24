@@ -677,12 +677,18 @@ class ApiManagerViewModel(
             val result = if (mode == BackupDialogMode.EXPORT) {
                 runCatching {
                     val entities = repository.getEntitiesForBackup()
-                    manager.exportTo(uri, manager.buildEnvelope(entities), password).getOrThrow()
+                    val envelope = manager.buildPortableEnvelope(entities, password).getOrThrow()
+                    manager.exportTo(uri, envelope, password).getOrThrow()
                 }.map { 0 }
             } else {
                 runCatching {
                     val envelope = manager.importFrom(uri, password).getOrThrow()
-                    repository.importEntities(manager.toEntities(envelope)).getOrThrow()
+                    val entities = if (envelope.transferSalt != null) {
+                        manager.fromPortableEnvelope(envelope, password).getOrThrow()
+                    } else {
+                        manager.toEntities(envelope)
+                    }
+                    repository.importEntities(entities).getOrThrow()
                 }
             }
             result.onSuccess { count ->
@@ -827,8 +833,7 @@ class ApiManagerViewModel(
             val code = BackupCrypto.generateCode()
             runCatching {
                 val json = currentQrPayload(code).getOrThrow()
-                val envelope = manager.fromJson(json).getOrThrow()
-                val bytes = manager.toZipBytes(envelope)
+                val bytes = json.toByteArray(Charsets.UTF_8)
                 val server = LocalSyncServer(
                     payload = bytes,
                     scope = viewModelScope,

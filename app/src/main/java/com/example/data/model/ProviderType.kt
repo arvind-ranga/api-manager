@@ -6,7 +6,9 @@ enum class ProviderType(
 ) {
     OPENAI("OpenAI", "https://api.openai.com/v1"),
     ANTHROPIC("Anthropic", "https://api.anthropic.com/v1"),
-    GENERIC("Generic", ""),
+    GEMINI("Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/"),
+    GROQ("Groq", "https://api.groq.com/openai/v1"),
+    OPENROUTER("OpenRouter", "https://openrouter.ai/api/v1"),
     CUSTOM("Custom", "");
 
     companion object {

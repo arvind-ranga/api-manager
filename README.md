@@ -4,6 +4,15 @@ A lightweight, offline-first Android vault for API endpoints and keys.
 
 No accounts, ads, analytics, Firebase, or Google Play services. Keys stay encrypted on-device and only leave when you export a backup or start a QR/LAN transfer.
 
+## Screenshots
+
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="220" alt="Vault" />
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="220" alt="Add endpoint" />
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="220" alt="QR transfer" />
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="220" alt="Lock screen" />
+</p>
+
 ## Features
 
 - 🔐 Encrypted on-device storage (AES-256-GCM, Android Keystore)
@@ -13,10 +22,10 @@ No accounts, ads, analytics, Firebase, or Google Play services. Keys stay encryp
 - 🗑️ Trash with 14-day auto-purge, restore, and empty-trash confirmation
 - 🧩 Duplicate keys for one site are badged and named `1`, `2`, `3`, …
 - 📋 Copy endpoint URL in one tap
-- 💾 Local encrypted ZIP backup
+- 💾 Password-encrypted ZIP backup that moves across phones
 - 📱 QR and LAN device-to-device transfer
 - 🔎 Google AI Mode or Brave AI search
-- 🧭 Direct links to OpenAI, Anthropic, Gemini, and OpenRouter
+- 🧭 Direct links to OpenAI, Anthropic, Gemini, Groq, and OpenRouter
 
 ## Backup and transfer
 
@@ -50,12 +59,11 @@ $env:KEYSTORE_PATH='C:\path\to\my-upload-key.jks'
 app/build/outputs/apk/release/app-release.apk
 ```
 
-Without signing credentials, the release APK stays unsigned for CI/F-Droid builds.
+Without signing credentials, the release APK stays unsigned for reproducible CI builds.
 
 ## Publishing
 
 - GitHub: <https://github.com/arvind-ranga/api-manager>
-- F-Droid / IzzyOnDroid metadata: `fastlane/metadata/android/`
 - Not intended for Google Play
 
 ## Security

@@ -154,13 +154,13 @@
     <string name="link_ko_fi">Ko-fi</string>
     <string name="link_sponsors">GitHub Sponsors</string>
     <string name="link_upi">UPI: electriclegend@yescred</string>
-    <string name="link_izzyondroid">IzzyOnDroid</string>
-    <string name="link_fdroid">F-Droid</string>
     <string name="providers_title">Popular providers</string>
     <string name="provider_openai">OpenAI</string>
     <string name="provider_anthropic">Anthropic</string>
     <string name="provider_gemini">Google Gemini</string>
+    <string name="provider_groq">Groq</string>
     <string name="provider_openrouter">OpenRouter</string>
+ 
 
     <string name="sync_qr_send_title">Send with QR codes</string>
     <string name="sync_qr_receive_title">Receive with QR codes</string>
@@ -172,7 +172,7 @@
     <string name="action_assemble">Assemble backup</string>
     <string name="action_scan_qr">Scan QR code</string>
     <string name="action_paste_address">Paste address</string>
-    <string name="lan_address_hint">http://192.168.x.x:8976/sync?token=…</string>
+    <string name="lan_address_hint">http://192.168.x.x:&lt;port&gt;/sync?token=…</string>
     <string name="action_connect">Connect</string>
     <string name="action_stop">Stop and back</string>
     <string name="sync_camera_hint">Point the camera at the QR code shown on the other device.</string>

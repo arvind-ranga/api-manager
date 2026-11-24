@@ -362,7 +362,7 @@ private fun QrScanner(onResult: (String) -> Unit) {
                                         mediaImage.height,
                                         0,
                                         0,
-                                        plane.rowStride,
+                                        mediaImage.width,
                                         mediaImage.height,
                                         false
                                     )
