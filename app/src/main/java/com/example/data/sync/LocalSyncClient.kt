@@ -35,8 +35,8 @@ object LocalSyncClient {
             }
 
             val connection = URL(url).openConnection() as HttpURLConnection
-            connection.connectTimeout = 5_000
-            connection.readTimeout = 15_000
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 30_000
             try {
                 if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                     throw IllegalStateException("Device refused the transfer (${connection.responseCode})")

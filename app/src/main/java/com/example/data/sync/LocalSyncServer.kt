@@ -5,14 +5,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
+import java.net.Socket
 import java.util.UUID
 
 /**
  * Tiny local HTTP server used only for device-to-device backup transfer.
- * It binds to the device's LAN address and serves one encrypted backup once,
- * protected by a random token embedded in the QR code. It never uses the internet.
+ *
+ * It binds to all interfaces (0.0.0.0) so phones on the same Wi-Fi can connect
+ * regardless of which interface Android reports first, but it only advertises a
+ * site-local IPv4 address in the QR code. It never reaches the internet, and it
+ * keeps serving until the valid /sync transfer completes or the user cancels.
  */
 class LocalSyncServer(
     private val payload: ByteArray,
@@ -25,7 +30,10 @@ class LocalSyncServer(
     private var serverSocket: ServerSocket? = null
 
     suspend fun start(port: Int = DEFAULT_PORT): String = withContext(Dispatchers.IO) {
-        val socket = ServerSocket(port)
+        // Bind to the wildcard address so any active interface accepts the connection.
+        val socket = ServerSocket()
+        socket.reuseAddress = true
+        socket.bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), port))
         serverSocket = socket
         running = true
         val address = localIpAddress() ?: "127.0.0.1"
@@ -55,15 +63,18 @@ class LocalSyncServer(
         serverSocket = null
     }
 
-    private fun handle(client: java.net.Socket) {
+    private fun handle(client: Socket) {
         try {
-            client.soTimeout = 5_000
+            client.soTimeout = 15_000
             val reader = client.getInputStream().bufferedReader(Charsets.US_ASCII)
             val requestLine = reader.readLine() ?: return
             val expectedPath = "/sync?token=$token" +
                 (transferCode?.let { "&code=$it&nonce=$nonce" } ?: "")
             if (!requestLine.contains(expectedPath)) {
-                client.getOutputStream().use { it.write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".toByteArray()) }
+                // Stray or wrong request: reject just this connection and keep serving.
+                client.getOutputStream().use {
+                    it.write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".toByteArray())
+                }
                 return
             }
             val header = "HTTP/1.1 200 OK\r\n" +
@@ -84,12 +95,38 @@ class LocalSyncServer(
         }
     }
 
+    /**
+     * Prefers an address on an up, non-VPN Wi-Fi-like interface before falling
+     * back to any site-local IPv4. This avoids advertising a virtual/VPN address.
+     */
     private fun localIpAddress(): String? {
-        return NetworkInterface.getNetworkInterfaces().toList()
+        val interfaces = NetworkInterface.getNetworkInterfaces().toList()
+        val candidates = interfaces.flatMap { it.inetAddresses.toList() }
+            .filter { address: InetAddress ->
+                !address.isLoopbackAddress &&
+                    address is java.net.Inet4Address &&
+                    address.isSiteLocalAddress
+            }
+        if (candidates.isEmpty()) return null
+
+        val preferred = interfaces
+            .filter { it.isUp && !it.isLoopback }
+            .sortedByDescending { scoreInterface(it) }
             .flatMap { it.inetAddresses.toList() }
-            .firstOrNull { address: InetAddress ->
-                !address.isLoopbackAddress && address is java.net.Inet4Address && address.isSiteLocalAddress
-            }?.hostAddress
+            .firstOrNull { it is java.net.Inet4Address && it.isSiteLocalAddress }
+        return (preferred ?: candidates.first()).hostAddress
+    }
+
+    private fun scoreInterface(networkInterface: NetworkInterface): Int {
+        val name = networkInterface.name.lowercase()
+        return when {
+            name.startsWith("wlan") -> 3
+            name.startsWith("wifi") -> 3
+            name.startsWith("ap") -> 2
+            name.startsWith("eth") -> 1
+            name.contains("vpn") || name.startsWith("tun") || name.startsWith("ppp") -> -1
+            else -> 0
+        }
     }
 
     companion object {

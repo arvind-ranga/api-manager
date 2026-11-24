@@ -427,9 +427,9 @@ fun SettingsSheet(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = if (trashCount > 0) {
-                        "🗑️ " + stringResource(R.string.trash_count, trashCount)
+                        stringResource(R.string.trash_count, trashCount)
                     } else {
-                        "🗑️ " + stringResource(R.string.section_trash)
+                        stringResource(R.string.section_trash)
                     },
                     color = MaterialTheme.colorScheme.error
                 )

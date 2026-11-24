@@ -18,10 +18,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -47,6 +51,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -82,12 +88,17 @@ fun AddEditEndpointDialog(
     var isApiKeyVisible by remember { mutableStateOf(false) }
 
     var expiryText by remember(editingEndpoint) {
-        mutableStateOf(editingEndpoint?.expiresAtMillis?.let { DateFormats.formatExpiryDate(it) } ?: "")
+        mutableStateOf(
+            TextFieldValue(
+                editingEndpoint?.expiresAtMillis?.let { DateFormats.formatExpiryDate(it) } ?: ""
+            )
+        )
     }
     var nameError by remember { mutableStateOf<Int?>(null) }
     var urlError by remember { mutableStateOf<Int?>(null) }
     var keyError by remember { mutableStateOf<Int?>(null) }
     var expiryError by remember { mutableStateOf<Int?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -244,12 +255,27 @@ fun AddEditEndpointDialog(
 
                 OutlinedTextField(
                     value = expiryText,
-                    onValueChange = {
-                        expiryText = DateFormats.autoFormatExpiryInput(it)
+                    onValueChange = { input ->
+                        val formatted = DateFormats.autoFormatExpiryInput(input.text)
+                        expiryText = TextFieldValue(
+                            text = formatted,
+                            selection = TextRange(formatted.length)
+                        )
                         expiryError = null
                     },
                     label = { Text(stringResource(R.string.field_expiry_label)) },
                     placeholder = { Text(stringResource(R.string.field_expiry_placeholder)) },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = { showDatePicker = true },
+                            modifier = Modifier.testTag("expiry_date_picker_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.DateRange,
+                                contentDescription = stringResource(R.string.cd_open_date_picker)
+                            )
+                        }
+                    },
                     singleLine = true,
                     isError = expiryError != null,
                     supportingText = {
@@ -263,6 +289,39 @@ fun AddEditEndpointDialog(
                         .fillMaxWidth()
                         .testTag("input_expiry")
                 )
+
+                if (showDatePicker) {
+                    val initial = expiryText.text
+                        .takeIf { it.length == 10 && it.count { c -> c == '-' } == 2 }
+                        ?.let { DateFormats.parseExpiryDate(it) }
+                        ?: System.currentTimeMillis()
+                    val datePickerState = rememberDatePickerState(
+                        initialSelectedDateMillis = initial
+                    )
+                    DatePickerDialog(
+                        onDismissRequest = { showDatePicker = false },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    datePickerState.selectedDateMillis?.let {
+                                        expiryText = TextFieldValue(DateFormats.formatExpiryDate(it))
+                                    }
+                                    expiryError = null
+                                    showDatePicker = false
+                                }
+                            ) {
+                                Text(stringResource(R.string.action_ok))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDatePicker = false }) {
+                                Text(stringResource(R.string.action_cancel))
+                            }
+                        }
+                    ) {
+                        DatePicker(state = datePickerState)
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -343,10 +402,11 @@ fun AddEditEndpointDialog(
                                 keyError = R.string.error_key_required
                                 hasError = true
                             }
-                            val expiresAt = if (expiryText.isBlank()) {
+                            val expiryInput = expiryText.text.trim()
+                            val expiresAt = if (expiryInput.isBlank()) {
                                 null
                             } else {
-                                DateFormats.parseExpiryDate(expiryText.trim()).also {
+                                DateFormats.parseExpiryDate(expiryInput).also {
                                     if (it == null) {
                                         expiryError = R.string.error_expiry_invalid
                                         hasError = true

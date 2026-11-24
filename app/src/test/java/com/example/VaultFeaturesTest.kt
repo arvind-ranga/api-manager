@@ -234,18 +234,25 @@ class VaultFeaturesTest {
         assertTrue(brave.endsWith("&summary=1"))
     }
 
+    @Test
     fun `expiry input auto formats DD-MM-YYYY`() {
-        assertEquals("01", DateFormats.autoFormatExpiryInput("1"))
-        assertEquals("01-01", DateFormats.autoFormatExpiryInput("11"))
-        assertEquals("01-01-2001", DateFormats.autoFormatExpiryInput("1012001"))
-        assertEquals("01-01-2001", DateFormats.autoFormatExpiryInput("01-01-2001"))
+        assertEquals("1", DateFormats.autoFormatExpiryInput("1"))
+        assertEquals("10", DateFormats.autoFormatExpiryInput("10"))
+        assertEquals("10-01", DateFormats.autoFormatExpiryInput("1001"))
+        assertEquals("10-01-2001", DateFormats.autoFormatExpiryInput("10012001"))
+        assertEquals("10-01-2001", DateFormats.autoFormatExpiryInput("10-01-2001"))
     }
 
     @Test
-    fun `expiry date uses DD-MM-YYYY`() {
-        val millis = DateFormats.parseExpiryDate("31-12-2026")
-        assertTrue(millis != null)
-        assertEquals("31-12-2026", DateFormats.formatExpiryDate(millis!!))
+    fun `expiry date accepts single and zero padded and uses DD-MM-YYYY`() {
+        val padded = DateFormats.parseExpiryDate("31-12-2026")
+        assertTrue(padded != null)
+        assertEquals("31-12-2026", DateFormats.formatExpiryDate(padded!!))
+
+        val single = DateFormats.parseExpiryDate("1-1-2026")
+        assertTrue(single != null)
+
         assertEquals(null, DateFormats.parseExpiryDate("2026-12-31"))
+        assertEquals(null, DateFormats.parseExpiryDate("31-13-2026"))
     }
 }

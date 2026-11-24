@@ -12,6 +12,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -118,14 +119,14 @@ fun QrSendScreen(
                     modifier = Modifier
                         .widthIn(max = 360.dp)
                         .fillMaxWidth()
+                        .aspectRatio(1f)
                 ) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = null,
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .padding(12.dp)
-                            .clip(RoundedCornerShape(8.dp))
                     )
                 }
             } else {

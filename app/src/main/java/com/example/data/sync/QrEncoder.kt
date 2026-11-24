@@ -15,7 +15,7 @@ object QrEncoder {
             val hints = mapOf(
                 EncodeHintType.CHARACTER_SET to Charsets.UTF_8.name(),
                 EncodeHintType.ERROR_CORRECTION to com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.M,
-                EncodeHintType.MARGIN to 1
+                EncodeHintType.MARGIN to 4
             )
             val matrix: BitMatrix = MultiFormatWriter().encode(
                 text,

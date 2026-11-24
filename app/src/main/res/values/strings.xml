@@ -39,6 +39,8 @@
     <string name="field_expiry_label">Expiry date (optional)</string>
     <string name="field_expiry_placeholder">DD-MM-YYYY</string>
     <string name="field_expiry_hint">Leave empty for a key that never expires. Format: DD-MM-YYYY.</string>
+    <string name="cd_open_date_picker">Open calendar</string>
+    <string name="action_ok">OK</string>
     <string name="action_search_docs">Find documentation online</string>
     <string name="encryption_hint">Encrypted on-device with AES-256-GCM (12-byte IV)</string>
     <string name="action_save">Save Endpoint</string>
@@ -124,14 +126,14 @@
     <string name="theme_auto">Auto (system)</string>
 
     <string name="section_backup">Backup &amp; Sync</string>
-    <string name="backup_desc">Your backup is a ZIP file you control. Keys stay encrypted with your device keystore, so keep the original device/install to restore it. No account, no cloud, no data collection.</string>
+    <string name="backup_desc">Your backup is a ZIP file encrypted with a password you choose. Export or import it on any device, including a new phone. Keep that password safe: a backup cannot be recovered if you lose it. No account, no cloud.</string>
     <string name="action_export_backup">Export ZIP backup</string>
     <string name="action_import_backup">Import ZIP backup</string>
     <string name="action_qr_send">Send via QR codes</string>
     <string name="action_qr_receive">Receive via QR codes</string>
     <string name="action_lan_send">Send over local network</string>
     <string name="action_lan_receive">Receive over local network</string>
-    <string name="sync_desc">Device-to-device transfer only. QR codes work fully offline; local-network transfer uses your Wi-Fi and no mobile data. Both generate a one-time code that encrypts keys during transfer.</string>
+    <string name="sync_desc">Device-to-device transfer only, no mobile data. QR transfer embeds the transfer key automatically, so there is no code to type. Local-network transfer uses your Wi-Fi with a one-time transfer code.</string>
 
     <string name="section_discover">Find API endpoints</string>
     <string name="discover_desc">Search the web with Google AI Mode or Brave AI, then paste the official link into a new endpoint. We do not host or ship an API catalogue, so results come straight from the search provider.</string>
@@ -192,5 +194,5 @@
     <string name="empty_trash_dialog_message">Permanently delete all %1$d item(s) in Trash? This cannot be undone.</string>
     <string name="action_restore">Restore</string>
     <string name="section_trash">Trash</string>
-    <string name="trash_count">🗑️ Trash (%1$d)</string>
+    <string name="trash_count">Trash (%1$d)</string>
 </resources>

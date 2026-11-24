@@ -9,33 +9,52 @@ import java.util.Locale
 object DateFormats {
     const val EXPIRY_PATTERN = "dd-MM-yyyy"
     private const val DATE_TIME_PATTERN = "dd-MM-yyyy hh:mm a"
-    private val EXPIRY_REGEX = Regex("\\d{2}-\\d{2}-\\d{4}")
+    private val LENIENT_EXPIRY_REGEX = Regex("\\d{1,2}-\\d{1,2}-\\d{4}")
 
     fun parseExpiryDate(value: String): Long? {
-        val formatted = autoFormatExpiryInput(value)
-        if (!EXPIRY_REGEX.matches(formatted)) return null
+        val trimmed = value.trim()
+        val normalized = if (LENIENT_EXPIRY_REGEX.matches(trimmed)) {
+            trimmed
+        } else {
+            autoFormatExpiryInput(trimmed)
+        }
+        if (!LENIENT_EXPIRY_REGEX.matches(normalized)) return null
         return try {
-            val format = SimpleDateFormat(EXPIRY_PATTERN, Locale.US)
-            format.isLenient = false
-            val date: Date = format.parse(formatted) ?: return null
+            val parts = normalized.split("-")
+            if (parts.size != 3) return null
+            val day = parts[0].toInt()
+            val month = parts[1].toInt()
+            val year = parts[2].toInt()
             val calendar = Calendar.getInstance()
-            calendar.time = date
+            calendar.clear()
+            calendar.setLenient(false)
             calendar.set(Calendar.HOUR_OF_DAY, 12)
             calendar.set(Calendar.MINUTE, 0)
             calendar.set(Calendar.SECOND, 0)
             calendar.set(Calendar.MILLISECOND, 0)
+            calendar.set(Calendar.YEAR, year)
+            calendar.set(Calendar.MONTH, month - 1)
+            calendar.set(Calendar.DAY_OF_MONTH, day)
             calendar.timeInMillis
         } catch (_: Exception) {
             null
         }
     }
 
+    /**
+     * Formats raw typing into DD-MM-YYYY while keeping a trailing separator so a
+     * partially typed date (e.g. "01-") is preserved instead of being stripped.
+     */
     fun autoFormatExpiryInput(raw: String): String {
         val digits = raw.filter { it.isDigit() }.take(8)
         val day = digits.take(2)
         val month = digits.drop(2).take(2)
         val year = digits.drop(4).take(4)
-        return listOf(day, month, year).filter { it.isNotEmpty() }.joinToString("-")
+        return buildString {
+            if (day.isNotEmpty()) append(day)
+            if (month.isNotEmpty()) append('-').append(month)
+            if (year.isNotEmpty()) append('-').append(year)
+        }
     }
 
     fun formatExpiryDate(epochMillis: Long): String =

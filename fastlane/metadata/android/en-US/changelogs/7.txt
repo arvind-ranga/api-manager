@@ -1,0 +1,6 @@
+Fixes and reliability:
+
+* Clarified backup and sync text; removed the duplicate Trash icon in Settings.
+* Expiry date field no longer fights the cursor: auto-formats DD-MM-YYYY and has a calendar picker. Accepts single-digit or zero-padded dates and shows a clear error for invalid dates.
+* QR send screen is scrollable with a responsive square QR so buttons never clip; QR margin increased for easier scanning.
+* Local-network server binds all interfaces, prefers Wi-Fi, uses longer timeouts, and survives stray requests.
