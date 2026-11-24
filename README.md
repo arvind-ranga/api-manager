@@ -1,5 +1,7 @@
 # API Manager
 
+> ⚠️ **Early, AI-assisted side project — not security-audited. Not intended for important or production API keys yet.** Built for personal use and open-sourced in case it helps someone. Use at your own risk; if you need something battle-tested, use Bitwarden/KeePass instead.
+
 A lightweight, offline-first Android vault for API endpoints and keys.
 
 No accounts, ads, analytics, Firebase, or Google Play services. Keys stay encrypted on-device and only leave when you export a backup or start a QR/LAN transfer.
