@@ -572,7 +572,6 @@ private fun VaultScreen(
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 50.dp)
                                 .testTag("search_endpoints_input")
                         )
 

@@ -1,0 +1,3 @@
+Fixes:
+
+* Fixed the search field text being clipped after it was made compact; the field now sizes naturally so text no longer touches the underline.
