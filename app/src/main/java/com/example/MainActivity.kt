@@ -60,7 +60,7 @@ class MainActivity : FragmentActivity() {
 
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-            ApiManagerTheme(themeMode = uiState.themeMode) {
+            ApiManagerTheme(themeMode = uiState.themeMode, accentColor = uiState.accentColor) {
                 val lifecycleOwner = LocalLifecycleOwner.current
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->

@@ -1,0 +1,8 @@
+Redesign and fixes:
+
+* Vibrant Material 3 palette with brighter dark-mode surfaces.
+* Numbered API list (1, 2, 3…) and color-coded expiry badges.
+* Expiry filter row (Any expiry / Active / Expired) split from the provider filter, so there is no duplicate "All".
+* "Open official site" now opens the provider's real website/dashboard (OpenAI, Anthropic, Gemini, Groq, OpenRouter) instead of the API base URL.
+* QR/LAN send and receive fixes: edge-to-edge insets, chunk index clamping, friendly errors, connect-button spinner fix.
+* Removed template tests and unused template colors.

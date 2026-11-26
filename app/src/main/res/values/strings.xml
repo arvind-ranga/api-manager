@@ -21,6 +21,12 @@
     <string name="cd_pin_fingerprint">Unlock with fingerprint</string>
     <string name="search_placeholder">Search endpoints or URLs…</string>
     <string name="filter_all">All</string>
+    <string name="section_accent">Accent color</string>
+    <string name="accent_default">Default</string>
+    <string name="filter_any_expiry">Any expiry</string>
+    <string name="filter_all_providers">All providers</string>
+    <string name="filter_active">Active / Not Expired</string>
+    <string name="filter_expired">Expired</string>
     <string name="masked_api_key">••••••••••••</string>
     <string name="empty_state_title">Your API Vault is Empty</string>
     <string name="empty_state_body">Store API endpoints and keys safely on-device with AES-GCM encryption. Keys stay masked until you reveal them.</string>
@@ -82,6 +88,11 @@
     <string name="badge_duplicate">Duplicate site</string>
     <string name="expiry_never">No expiry</string>
     <string name="expiry_on">Expires %1$s</string>
+    <string name="expiry_status_expired">Expired %1$s</string>
+    <string name="action_open_official_site">Open official site</string>
+    <string name="snackbar_no_browser">No browser found to open this link</string>
+    <string name="sync_qr_image_desc">QR code to scan on the other device</string>
+    <string name="sync_qr_too_large">QR code too large for this screen</string>
     <string name="endpoints_count_singular">%1$d endpoint</string>
     <string name="endpoints_count_plural">%1$d endpoints</string>
 

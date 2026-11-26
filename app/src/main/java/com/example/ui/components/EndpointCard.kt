@@ -1,11 +1,18 @@
 package com.example.ui.components
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.util.Patterns
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +32,7 @@ import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Visibility
@@ -52,6 +60,8 @@ import com.example.R
 import com.example.data.model.ProviderType
 import com.example.data.repository.ApiEndpointItem
 import com.example.ui.DateFormats
+import com.example.ui.ExpiryStatus
+import com.example.ui.expiryStatusOf
 import com.example.ui.theme.AnthropicAccentDark
 import com.example.ui.theme.AnthropicAccentLight
 import com.example.ui.theme.CodeTextStyle
@@ -65,16 +75,19 @@ import com.example.ui.theme.OpenAiAccentDark
 import com.example.ui.theme.OpenAiAccentLight
 import com.example.ui.theme.OpenRouterAccentDark
 import com.example.ui.theme.OpenRouterAccentLight
+import com.example.ui.theme.vaultStatusColors
 
 @Composable
 fun EndpointCard(
     item: ApiEndpointItem,
+    index: Int,
     revealedKey: String?,
     onToggleReveal: () -> Unit,
     onCopyKey: () -> Unit,
     onCopyUrl: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onOpenOfficialLink: (String) -> Unit = {},
     isDuplicate: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -108,20 +121,37 @@ fun EndpointCard(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ProviderBadge(
-                        providerType = item.providerType,
-                        accentColor = providerColor,
-                        icon = providerIcon
+                    IndexBadge(
+                        index = index,
+                        modifier = Modifier.testTag("endpoint_index_${item.id}")
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.testTag("endpoint_name_${item.id}")
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag("endpoint_name_${item.id}")
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = providerIcon,
+                                contentDescription = null,
+                                tint = providerColor,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = item.providerType.displayName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = providerColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -149,6 +179,28 @@ fun EndpointCard(
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            ExpiryStatusBadge(
+                expiresAtMillis = item.expiresAtMillis,
+                modifier = Modifier.testTag("expiry_badge_${item.id}")
+            )
+
+            if (isDuplicate) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
+                ) {
+                    Text(
+                        text = stringResource(R.string.badge_duplicate),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
                 }
             }
 
@@ -190,49 +242,6 @@ fun EndpointCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isExpired(item.expiresAtMillis)) {
-                        MaterialTheme.colorScheme.errorContainer
-                    } else {
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
-                    }
-                ) {
-                    Text(
-                        text = expiryLabel(item.expiresAtMillis),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isExpired(item.expiresAtMillis)) {
-                            MaterialTheme.colorScheme.onErrorContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-                if (isDuplicate) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.badge_duplicate),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
@@ -244,7 +253,9 @@ fun EndpointCard(
                         MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                     }
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -319,10 +330,10 @@ fun EndpointCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -346,39 +357,186 @@ fun EndpointCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            val officialUrl = officialSiteFor(item.providerType, item.baseUrl)
+            if (isValidHttpUrl(officialUrl)) {
+                Surface(
+                    onClick = { onOpenOfficialLink(officialUrl) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                        .testTag("open_official_link_${item.id}")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.action_open_official_site),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Outlined.Link,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
+/** Numbered position badge (1, 2, 3…) shown in front of every vault entry. */
 @Composable
-private fun ProviderBadge(
-    providerType: ProviderType,
-    accentColor: Color,
-    icon: ImageVector
+private fun IndexBadge(
+    index: Int,
+    modifier: Modifier = Modifier
 ) {
     Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = modifier.size(34.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = index.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+/** Vibrant expiry status badge: emerald while active, red once expired. */
+@Composable
+private fun ExpiryStatusBadge(
+    expiresAtMillis: Long?,
+    modifier: Modifier = Modifier
+) {
+    val status = expiryStatusOf(expiresAtMillis)
+    val statusColors = vaultStatusColors()
+    val container = if (status == ExpiryStatus.EXPIRED) {
+        MaterialTheme.colorScheme.errorContainer
+    } else {
+        statusColors.successContainer
+    }
+    val content = if (status == ExpiryStatus.EXPIRED) {
+        MaterialTheme.colorScheme.onErrorContainer
+    } else {
+        statusColors.onSuccessContainer
+    }
+    Surface(
         shape = RoundedCornerShape(8.dp),
-        color = accentColor.copy(alpha = 0.14f),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.35f))
+        color = container,
+        modifier = modifier
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = stringResource(R.string.cd_provider_icon),
-                tint = accentColor,
-                modifier = Modifier.size(14.dp)
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .androidBackground(
+                        if (status == ExpiryStatus.EXPIRED) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            statusColors.success
+                        }
+                    )
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(5.dp))
             Text(
-                text = providerType.displayName,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = accentColor
+                text = when (status) {
+                    ExpiryStatus.EXPIRED -> stringResource(
+                        R.string.expiry_status_expired,
+                        DateFormats.formatExpiryDate(requireNotNull(expiresAtMillis))
+                    )
+                    ExpiryStatus.ACTIVE -> expiresAtMillis?.let {
+                        stringResource(R.string.expiry_on, DateFormats.formatExpiryDate(it))
+                    } ?: stringResource(R.string.expiry_never)
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = content
             )
         }
     }
+}
+
+private fun Modifier.androidBackground(color: Color): Modifier =
+    this.then(Modifier.background(color))
+
+/**
+ * Resolves the official website / dashboard for a provider. Known providers open
+ * their real site (not the API base URL, which is often not a browsable page);
+ * custom entries fall back to the stored base URL.
+ */
+internal fun officialSiteFor(providerType: ProviderType, baseUrl: String): String = when (providerType) {
+    ProviderType.OPENAI -> "https://platform.openai.com/api-keys"
+    ProviderType.ANTHROPIC -> "https://console.anthropic.com/settings/keys"
+    ProviderType.GEMINI -> "https://aistudio.google.com/app/apikey"
+    ProviderType.GROQ -> "https://console.groq.com/keys"
+    ProviderType.OPENROUTER -> "https://openrouter.ai/keys"
+    ProviderType.CUSTOM -> mainSiteOf(baseUrl)
+}
+
+/**
+ * Reduces an API base URL to its main site by dropping version/endpoint path
+ * segments such as /v1, /v2, /v1beta, /openai/v1. Returns the original value
+ * when it cannot be parsed, so the caller's URL validation still applies.
+ */
+internal fun mainSiteOf(rawUrl: String): String {
+    val trimmed = rawUrl.trim()
+    val withScheme = if (trimmed.startsWith("http://", true) || trimmed.startsWith("https://", true)) {
+        trimmed
+    } else {
+        "https://$trimmed"
+    }
+    return runCatching {
+        val uri = java.net.URI(withScheme)
+        val host = uri.host ?: return trimmed
+        val scheme = uri.scheme ?: "https"
+        "$scheme://$host"
+    }.getOrDefault(trimmed)
+}
+
+/**
+ * Opens an official website/dashboard link in the device browser with URL
+ * validation. Returns false (and shows nothing) when no browser handles it.
+ */
+internal fun openOfficialLink(context: Context, rawUrl: String): Boolean {
+    val trimmed = rawUrl.trim()
+    val hasScheme = trimmed.startsWith("https://", ignoreCase = true) ||
+        trimmed.startsWith("http://", ignoreCase = true)
+    val safeUrl = if (hasScheme) trimmed else "https://$trimmed"
+    if (Patterns.WEB_URL.matcher(safeUrl).matches()) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(safeUrl))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return try {
+            context.startActivity(intent)
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        }
+    }
+    return false
 }
 
 @Composable
@@ -406,12 +564,3 @@ private fun providerIcon(providerType: ProviderType): ImageVector {
 }
 
 private fun formatTimestamp(epochMillis: Long): String = DateFormats.formatDateTime(epochMillis)
-
-@Composable
-private fun expiryLabel(expiresAtMillis: Long?): String {
-    if (expiresAtMillis == null) return stringResource(R.string.expiry_never)
-    return stringResource(R.string.expiry_on, DateFormats.formatExpiryDate(expiresAtMillis))
-}
-
-private fun isExpired(expiresAtMillis: Long?): Boolean =
-    expiresAtMillis != null && expiresAtMillis < System.currentTimeMillis()

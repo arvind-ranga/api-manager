@@ -1,11 +1,13 @@
 package com.example.ui
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import android.os.PersistableBundle
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -28,6 +30,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -67,6 +71,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -92,6 +97,7 @@ import com.example.ui.components.EndpointCard
 import com.example.ui.components.LockScreen
 import com.example.ui.components.PinSetupDialog
 import com.example.ui.components.SettingsSheet
+import com.example.ui.components.openOfficialLink
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,6 +209,8 @@ fun ApiManagerScreen(
                 onLanReceive = viewModel::onStartLanReceive,
                 onOpenTrash = viewModel::onOpenTrash,
                 onOpenAbout = viewModel::onOpenAbout,
+                accentColor = uiState.accentColor,
+                onAccentColorSelected = viewModel::onAccentColorSelected,
                 isBackupPasswordDialogOpen = uiState.isBackupPasswordDialogOpen,
                 backupDialogMode = uiState.backupDialogMode,
                 backupPasswordInput = uiState.backupPasswordInput,
@@ -371,6 +379,20 @@ private fun VaultScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val anyKeyVisible = uiState.revealedKeys.isNotEmpty()
+
+    // Protect the vault from task-switcher screenshots while a secret is on screen.
+    DisposableEffect(anyKeyVisible) {
+        val window = (context as? Activity)?.window
+        if (window != null) {
+            if (anyKeyVisible) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+        onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -524,6 +546,7 @@ private fun VaultScreen(
                             value = uiState.searchQuery,
                             onValueChange = viewModel::onSearchQueryChanged,
                             placeholder = { Text(stringResource(R.string.search_placeholder)) },
+                            textStyle = MaterialTheme.typography.bodyMedium,
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Search,
@@ -546,24 +569,55 @@ private fun VaultScreen(
                                 }
                             },
                             singleLine = true,
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(max = 50.dp)
                                 .testTag("search_endpoints_input")
                         )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            ExpiryFilter.entries.forEach { filter ->
+                                val label = when (filter) {
+                                    ExpiryFilter.ALL -> stringResource(R.string.filter_any_expiry)
+                                    ExpiryFilter.ACTIVE -> stringResource(R.string.filter_active)
+                                    ExpiryFilter.EXPIRED -> stringResource(R.string.filter_expired)
+                                }
+                                FilterChip(
+                                    selected = uiState.selectedExpiryFilter == filter,
+                                    onClick = { viewModel.onExpiryFilterSelected(filter) },
+                                    label = {
+                                        Text(label, style = MaterialTheme.typography.labelMedium)
+                                    },
+                                    modifier = Modifier.testTag("expiry_filter_${filter.name.lowercase()}")
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             FilterChip(
                                 selected = uiState.selectedProviderFilter == null,
                                 onClick = { viewModel.onFilterSelected(null) },
-                                label = { Text(stringResource(R.string.filter_all)) },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.filter_all_providers),
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                },
                                 modifier = Modifier.testTag("filter_chip_all")
                             )
                             ProviderType.entries.forEach { provider ->
@@ -577,13 +631,18 @@ private fun VaultScreen(
                                         }
                                         viewModel.onFilterSelected(next)
                                     },
-                                    label = { Text(provider.displayName) },
+                                    label = {
+                                        Text(
+                                            provider.displayName,
+                                            style = MaterialTheme.typography.labelMedium
+                                        )
+                                    },
                                     modifier = Modifier.testTag("filter_chip_${provider.name.lowercase()}")
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
 
@@ -628,12 +687,13 @@ private fun VaultScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(
+                            itemsIndexed(
                                 items = uiState.filteredEndpoints,
-                                key = { it.id }
-                            ) { item ->
+                                key = { _, item -> item.id }
+                            ) { position, item ->
                                 EndpointCard(
                                     item = item,
+                                    index = position + 1,
                                     revealedKey = uiState.revealedKeys[item.id],
                                     onToggleReveal = { viewModel.onToggleKeyVisibility(item) },
                                     onCopyKey = {
@@ -646,6 +706,10 @@ private fun VaultScreen(
                                     onCopyUrl = {
                                         copyPlainTextToClipboard(context, item.baseUrl)
                                         viewModel.onUrlCopied()
+                                    },
+                                    onOpenOfficialLink = { url ->
+                                        val opened = openOfficialLink(context, url)
+                                        viewModel.onOfficialLinkResult(opened)
                                     },
                                     isDuplicate = (uiState.duplicateUrls[normalizeUrl(item.baseUrl)] ?: 0) > 1
                                 )

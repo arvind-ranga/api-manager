@@ -2,7 +2,6 @@ package com.example.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -17,11 +16,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,6 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +52,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -71,8 +77,13 @@ private fun SyncScaffold(
     content: @Composable (Modifier) -> Unit
 ) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                ),
                 title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -111,11 +122,12 @@ fun QrSendScreen(
                 Text(stringResource(R.string.backup_desc))
                 return@Column
             }
-            val bitmap: Bitmap? = remember(chunks, index) { QrEncoder.encode(chunks[index]) }
+            val safeIndex = index.coerceIn(0, chunks.lastIndex)
+            val bitmap = remember(chunks, safeIndex) { QrEncoder.encode(chunks[safeIndex]) }
             if (bitmap != null) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = androidx.compose.ui.graphics.Color.White,
+                    color = Color.White,
                     modifier = Modifier
                         .widthIn(max = 360.dp)
                         .fillMaxWidth()
@@ -123,26 +135,27 @@ fun QrSendScreen(
                 ) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.sync_qr_image_desc),
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(12.dp)
                     )
                 }
             } else {
-                Text("QR code too large for this screen")
+                Text(stringResource(R.string.sync_qr_too_large))
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = stringResource(R.string.sync_qr_page, index + 1, chunks.size),
+                text = stringResource(R.string.sync_qr_page, safeIndex + 1, chunks.size),
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(16.dp))
             RowButtons(
-                previousEnabled = index > 0,
-                nextEnabled = index < chunks.lastIndex,
-                onPrevious = { onPageChanged(index - 1) },
-                onNext = { onPageChanged(index + 1) }
+                previousEnabled = safeIndex > 0,
+                nextEnabled = safeIndex < chunks.lastIndex,
+                onPrevious = { onPageChanged(safeIndex - 1) },
+                onNext = { onPageChanged(safeIndex + 1) }
             )
         }
     }
@@ -221,11 +234,12 @@ fun LanSendScreen(
             if (bitmap != null) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = androidx.compose.ui.graphics.Color.White
+                    color = Color.White
                 ) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.sync_qr_image_desc),
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
                             .padding(12.dp)
                             .widthIn(max = 320.dp)
@@ -286,14 +300,7 @@ fun LanReceiveScreen(
                 enabled = address.isNotBlank() && !isBusy,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                if (isBusy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text(stringResource(R.string.action_connect))
-                }
+                Text(stringResource(R.string.action_connect))
             }
         }
     }
@@ -319,7 +326,13 @@ private fun QrScanner(onResult: (String) -> Unit) {
     }
 
     if (!permissionGranted) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(280.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(stringResource(R.string.sync_camera_permission))
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {

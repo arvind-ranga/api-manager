@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LockOpen
@@ -57,6 +59,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -91,6 +95,8 @@ fun SettingsSheet(
     onOpenTrash: () -> Unit,
     onOpenAbout: () -> Unit,
     onDismiss: () -> Unit,
+    accentColor: Int? = null,
+    onAccentColorSelected: (Int?) -> Unit = {},
     isBackupPasswordDialogOpen: Boolean = false,
     backupDialogMode: BackupDialogMode = BackupDialogMode.EXPORT,
     backupPasswordInput: String = "",
@@ -295,6 +301,35 @@ fun SettingsSheet(
                         }
                     }
                     Spacer(modifier = Modifier.width(6.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.section_accent),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                AccentSwatch(
+                    color = null,
+                    label = stringResource(R.string.accent_default),
+                    selected = accentColor == null,
+                    onClick = { onAccentColorSelected(null) }
+                )
+                AccentPresets.forEach { preset ->
+                    AccentSwatch(
+                        color = preset.color,
+                        label = preset.label,
+                        selected = accentColor == preset.color,
+                        onClick = { onAccentColorSelected(preset.color) }
+                    )
                 }
             }
 
@@ -574,6 +609,53 @@ private fun SectionTitle(text: String) {
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary
     )
+}
+
+private data class AccentPreset(val label: String, val color: Int)
+
+private val AccentPresets = listOf(
+    AccentPreset("Indigo", 0xFF4F46E5.toInt()),
+    AccentPreset("Blue", 0xFF2563EB.toInt()),
+    AccentPreset("Emerald", 0xFF059669.toInt()),
+    AccentPreset("Rose", 0xFFE11D48.toInt()),
+    AccentPreset("Amber", 0xFFD97706.toInt()),
+    AccentPreset("Violet", 0xFF7C3AED.toInt()),
+    AccentPreset("Cyan", 0xFF0891B2.toInt())
+)
+
+@Composable
+private fun AccentSwatch(
+    color: Int?,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val swatch = color?.let { Color(it) } ?: MaterialTheme.colorScheme.primary
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(50),
+            color = swatch,
+            border = BorderStroke(
+                width = if (selected) 3.dp else 1.dp,
+                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
+            ),
+            modifier = Modifier
+                .size(44.dp)
+                .testTag("accent_${label.lowercase()}")
+        ) {
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Outlined.Check,
+                    contentDescription = null,
+                    tint = if (swatch.luminance() > 0.5f) Color(0xFF101623) else Color(0xFFFFFFFF),
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall)
+    }
 }
 
 @Composable

@@ -41,12 +41,27 @@ enum class AppScreen {
 
 enum class BackupDialogMode { EXPORT, IMPORT }
 
+/** Filter for the vault list based on each key's expiration date. */
+enum class ExpiryFilter { ALL, ACTIVE, EXPIRED }
+
+/** Expiration status derived from a stored expiry date. */
+enum class ExpiryStatus { ACTIVE, EXPIRED }
+
+fun expiryStatusOf(expiresAtMillis: Long?): ExpiryStatus =
+    if (expiresAtMillis != null && expiresAtMillis < System.currentTimeMillis()) {
+        ExpiryStatus.EXPIRED
+    } else {
+        ExpiryStatus.ACTIVE
+    }
+
 data class ApiManagerUiState(
     val allEndpoints: List<ApiEndpointItem> = emptyList(),
     val trashEndpoints: List<ApiEndpointItem> = emptyList(),
     val filteredEndpoints: List<ApiEndpointItem> = emptyList(),
     val revealedKeys: Map<Long, String> = emptyMap(),
     val selectedProviderFilter: ProviderType? = null,
+    val selectedExpiryFilter: ExpiryFilter = ExpiryFilter.ALL,
+    val accentColor: Int? = null,
     val searchQuery: String = "",
     val duplicateUrls: Map<String, Int> = emptyMap(),
     val isAddEditDialogOpen: Boolean = false,
@@ -86,6 +101,8 @@ data class ApiManagerUiState(
 private data class InteractionState(
     val revealedKeys: Map<Long, String> = emptyMap(),
     val selectedProviderFilter: ProviderType? = null,
+    val selectedExpiryFilter: ExpiryFilter = ExpiryFilter.ALL,
+    val accentColor: Int? = null,
     val searchQuery: String = "",
     val isAddEditDialogOpen: Boolean = false,
     val editingEndpoint: ApiEndpointItem? = null,
@@ -154,6 +171,11 @@ class ApiManagerViewModel(
             }
         }
         viewModelScope.launch {
+            themeStore.accentColor.collect { color ->
+                interactionState.update { it.copy(accentColor = color) }
+            }
+        }
+        viewModelScope.launch {
             repository.purgeExpiredTrash()
         }
     }
@@ -178,11 +200,16 @@ class ApiManagerViewModel(
         val filtered = endpoints.filter { item ->
             val matchesProvider = ui.selectedProviderFilter == null ||
                 item.providerType == ui.selectedProviderFilter
+            val matchesExpiry = ui.selectedExpiryFilter == ExpiryFilter.ALL ||
+                expiryStatusOf(item.expiresAtMillis) == when (ui.selectedExpiryFilter) {
+                    ExpiryFilter.ACTIVE -> ExpiryStatus.ACTIVE
+                    else -> ExpiryStatus.EXPIRED
+                }
             val matchesQuery = query.isEmpty() ||
                 item.name.contains(query, ignoreCase = true) ||
                 item.baseUrl.contains(query, ignoreCase = true) ||
                 item.providerType.displayName.contains(query, ignoreCase = true)
-            matchesProvider && matchesQuery
+            matchesProvider && matchesExpiry && matchesQuery
         }
         val duplicates = endpoints.groupingBy { repository.normalizeUrl(it.baseUrl) }.eachCount()
             .filterValues { it > 1 }
@@ -193,6 +220,8 @@ class ApiManagerViewModel(
             filteredEndpoints = filtered,
             revealedKeys = activeRevealed,
             selectedProviderFilter = ui.selectedProviderFilter,
+            selectedExpiryFilter = ui.selectedExpiryFilter,
+            accentColor = ui.accentColor,
             searchQuery = ui.searchQuery,
             duplicateUrls = duplicates,
             isAddEditDialogOpen = ui.isAddEditDialogOpen,
@@ -241,6 +270,10 @@ class ApiManagerViewModel(
         viewModelScope.launch { themeStore.setSearchProvider(provider) }
     }
 
+    fun onAccentColorSelected(color: Int?) {
+        viewModelScope.launch { themeStore.setAccentColor(color) }
+    }
+
     fun onOpenTrash() {
         viewModelScope.launch {
             repository.purgeExpiredTrash()
@@ -279,6 +312,13 @@ class ApiManagerViewModel(
 
     fun onUrlCopied() {
         interactionState.update { it.copy(snackbarMessageRes = R.string.snackbar_url_copied) }
+    }
+
+    /** Tells the user when a browser tap could not be completed. */
+    fun onOfficialLinkResult(opened: Boolean) {
+        if (!opened) {
+            interactionState.update { it.copy(snackbarMessageRes = R.string.snackbar_no_browser) }
+        }
     }
 
     fun onOpenSettings() {
@@ -465,6 +505,10 @@ class ApiManagerViewModel(
 
     fun onFilterSelected(providerType: ProviderType?) {
         interactionState.update { it.copy(selectedProviderFilter = providerType) }
+    }
+
+    fun onExpiryFilterSelected(filter: ExpiryFilter) {
+        interactionState.update { it.copy(selectedExpiryFilter = filter) }
     }
 
     fun onSearchQueryChanged(query: String) {
