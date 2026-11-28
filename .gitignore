@@ -28,3 +28,6 @@ secrets.properties
 google-services.json
 
 .exvisit/
+
+# dead pre-rotation keystore backups
+*.bak
